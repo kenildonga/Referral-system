@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AdminRole } from '../common/constants/admin-role.enum';
+import { AdminRole } from '../entities/enum';
 import { createZodDto } from 'nestjs-zod';
 
 export const passwordSchema = z

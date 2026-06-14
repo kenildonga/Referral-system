@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { AdminRole } from '../constants/admin-role.enum';
+import { AdminRole } from '../../entities/enum';
 import type { AuthenticatedRequest } from '../interfaces/auth.interface';
 
 @Injectable()

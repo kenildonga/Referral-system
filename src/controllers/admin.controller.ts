@@ -28,7 +28,7 @@ import { SuperAdmin } from '../common/decorators/super-admin.decorator';
 @ApiTags('admins')
 @Controller('admins')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(private readonly adminService: AdminService) {}
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })

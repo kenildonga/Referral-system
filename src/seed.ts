@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AdminService } from './services/admin.service';
-import { AdminRole } from './common/constants/admin-role.enum';
+import { AdminRole } from './entities/enum';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);

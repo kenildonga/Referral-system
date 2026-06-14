@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import { AdminRole } from '../constants/admin-role.enum';
+import { AdminRole } from '../../entities/enum';
 
 export interface JwtPayload {
   id: string;

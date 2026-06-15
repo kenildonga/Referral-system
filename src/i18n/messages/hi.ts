@@ -1,6 +1,8 @@
 import type { MessageTree } from './index';
 
 export const hiMessages: MessageTree = {
+  'ThrottlerException: Too Many Requests':
+    'बहुत अधिक अनुरोध, कृपया बाद में प्रयास करें',
   auth: {
     missingAuthHeader: 'अधिकृतीकरण हेडर गायब है',
     invalidAuthFormat:

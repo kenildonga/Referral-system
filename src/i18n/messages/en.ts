@@ -1,4 +1,6 @@
 export const enMessages = {
+  'ThrottlerException: Too Many Requests':
+    'Too Many Requests, please try again later',
   auth: {
     missingAuthHeader: 'Missing authorization header',
     invalidAuthFormat: 'Invalid authorization format. Use Bearer <token>',

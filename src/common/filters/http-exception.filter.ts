@@ -13,6 +13,7 @@ import { ZodError } from 'zod';
 import { I18nService } from '../../i18n/i18n.service';
 import { HTTP_STATUS_ERROR_KEYS } from '../../i18n/messages';
 import type { LocaleRequest } from '../../i18n/locale.interceptor';
+import { parseLocale } from '../../i18n/parse-locale';
 
 @Catch()
 @Injectable()
@@ -25,7 +26,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<LocaleRequest>();
-    const locale = request.locale;
+    const locale =
+      request.locale ?? parseLocale(request.headers?.['accept-language']);
 
     let statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = this.i18n.t(

@@ -3,7 +3,6 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
-  UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -57,7 +56,7 @@ export class AdminService {
     });
 
     if (!admin || !admin.isActive) {
-      throw new UnauthorizedException('auth.invalidEmailOrPassword');
+      throw new ForbiddenException('auth.invalidEmailOrPassword');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -65,7 +64,7 @@ export class AdminService {
       admin.password,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException('auth.invalidEmailOrPassword');
+      throw new ForbiddenException('auth.invalidEmailOrPassword');
     }
 
     const accessToken = this.signToken(admin);
@@ -88,7 +87,7 @@ export class AdminService {
       where: { id: adminId },
     });
     if (!admin) {
-      throw new UnauthorizedException('auth.invalidOrExpiredToken');
+      throw new ForbiddenException('auth.invalidOrExpiredToken');
     }
 
     const isCurrentValid = await bcrypt.compare(
@@ -96,7 +95,7 @@ export class AdminService {
       admin.password,
     );
     if (!isCurrentValid) {
-      throw new UnauthorizedException('auth.currentPasswordIncorrect');
+      throw new ForbiddenException('auth.currentPasswordIncorrect');
     }
 
     await this.updatePassword(admin, changePasswordDto.newPassword);
@@ -298,7 +297,7 @@ export class AdminService {
       where: { id: adminId },
     });
     if (!admin) {
-      throw new UnauthorizedException('auth.invalidOrExpiredToken');
+      throw new ForbiddenException('auth.invalidOrExpiredToken');
     }
     admin.tokenVersion += 1;
     await this.adminRepository.save(admin);

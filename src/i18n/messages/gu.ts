@@ -1,6 +1,8 @@
 import type { MessageTree } from './index';
 
 export const guMessages: MessageTree = {
+  'ThrottlerException: Too Many Requests':
+    'ખૂબ વધુ વિનંતીઓ, કૃપા કરીને થોડા સમય પછી પ્રયાસ કરો',
   auth: {
     missingAuthHeader: 'અધિકૃતતા હેડર ગુમ થયેલ છે',
     invalidAuthFormat: 'અમાન્ય અધિકૃતતા ફોર્મેટ. Bearer <token> નો ઉપયોગ કરો',

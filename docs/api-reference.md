@@ -9,7 +9,7 @@ API reference for frontend development. All endpoints return JSON unless noted o
 | Local (default) | `http://localhost:3000` |
 | Production | Set via your deployment host |
 
-There is **no global API prefix**. Routes are mounted at `/admins` and `/agents`.
+There is **no global API prefix**. Routes are mounted at `/admins`, `/agents`, and `/forms`.
 
 Interactive docs (Swagger UI): `GET /docs`
 
@@ -166,7 +166,7 @@ On invalidation, the API returns `401` with message `"Invalid or expired token"`
 | Level | Requirement | Used for |
 |-------|-------------|----------|
 | Public | None | Login, forgot/reset password |
-| Admin | Valid admin JWT | Agent management, admin logout/password |
+| Admin | Valid admin JWT | Agent management, admin logout/password, form management |
 | Super Admin | Admin JWT + `role: "superAdmin"` | Admin CRUD and admin management |
 | Agent | Valid agent JWT | Agent logout/password |
 
@@ -184,6 +184,8 @@ Stricter limits on sensitive endpoints:
 | `POST /admins/forgot-password` | 3 / minute |
 | `POST /admins/reset-password` | 5 / minute |
 | `POST /agents/login` | 5 / minute |
+| `POST /forms/:id/responses` | 10 / minute |
+| `POST /forms/:id/uploads/presign` | 20 / minute |
 
 Exceeded limits return `429 Too Many Requests`.
 
@@ -897,6 +899,316 @@ Generate a new password for an agent.
 
 ---
 
+## Form endpoints
+
+Base path: `/forms`
+
+Forms store JSON schemas (`fields` as JSONB). Submissions are stored in `form_responses`. File binaries live in S3; only metadata is stored in answers.
+
+Both forms and responses use **soft delete** (`deletedAt` column). Soft-deleted records are excluded from all queries.
+
+### `POST /forms`
+
+Create a new form schema.
+
+**Auth:** Admin
+
+**Request body:**
+
+```json
+{
+  "title": "Contact Us",
+  "description": "Reach out to our team",
+  "fields": [
+    {
+      "id": "full_name",
+      "type": "text",
+      "label": "Full Name",
+      "validation": { "required": true }
+    },
+    {
+      "id": "department",
+      "type": "dropdown",
+      "label": "Department",
+      "options": ["Sales", "Support"],
+      "validation": { "required": true }
+    }
+  ],
+  "isPublished": true
+}
+```
+
+| Field | Type | Required | Rules |
+|-------|------|----------|-------|
+| `title` | `string` | Yes | 1–255 chars |
+| `description` | `string` | No | Max 2000 chars |
+| `fields` | `FormField[]` | No | Default `[]` |
+| `isPublished` | `boolean` | No | Default `true` |
+
+**Success `201`:** Full form object including `id` (use as `formId` on the client).
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `400` | `Duplicate field ID in schema` |
+| `400` | `This field type requires at least one option` |
+
+---
+
+### `GET /forms`
+
+List all forms (summary fields only — no `fields` array).
+
+**Auth:** Admin
+
+**Success `200`:**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "Contact Us",
+    "description": "Reach out to our team",
+    "isPublished": true,
+    "createdAt": "2026-06-16T10:00:00.000Z",
+    "updatedAt": "2026-06-16T10:00:00.000Z"
+  }
+]
+```
+
+---
+
+### `GET /forms/:id`
+
+Get full form schema by ID. Public — used at runtime to render a form.
+
+**Auth:** Public
+
+**Success `200`:**
+
+```json
+{
+  "id": "uuid",
+  "title": "Contact Us",
+  "description": "Reach out to our team",
+  "fields": [ "..." ],
+  "isPublished": true,
+  "createdById": "uuid",
+  "createdAt": "2026-06-16T10:00:00.000Z",
+  "updatedAt": "2026-06-16T10:00:00.000Z"
+}
+```
+
+Map to frontend `FormSchema`:
+
+```ts
+const schema: FormSchema = {
+  formId: form.id,
+  title: form.title,
+  description: form.description ?? undefined,
+  fields: form.fields,
+};
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `404` | `Form not found` |
+
+---
+
+### `PUT /forms/:id`
+
+Save / replace form schema.
+
+**Auth:** Admin
+
+**Request body** (at least one field required):
+
+```json
+{
+  "title": "Contact Us (updated)",
+  "fields": [ "..." ]
+}
+```
+
+**Success `200`:** Updated form object.
+
+---
+
+### `DELETE /forms/:id`
+
+Soft-delete a form and all of its responses. S3 files are cleaned up in the background.
+
+**Auth:** Admin
+
+**Success `200`:**
+
+```json
+{
+  "message": "Form deleted successfully"
+}
+```
+
+---
+
+### `POST /forms/:id/responses`
+
+Submit a form response.
+
+**Auth:** Public  
+**Rate limit:** 10/min
+
+**Request body:**
+
+```json
+{
+  "answers": {
+    "full_name": "Jane Doe",
+    "department": "Sales",
+    "resume": {
+      "kind": "file",
+      "key": "forms/form-uuid/resume/uuid_resume.pdf",
+      "url": "https://your-bucket.s3.amazonaws.com/forms/form-uuid/resume/uuid_resume.pdf",
+      "name": "resume.pdf",
+      "size": 204800,
+      "type": "application/pdf"
+    }
+  }
+}
+```
+
+**Success `201`:**
+
+```json
+{
+  "id": "resp-uuid",
+  "formId": "form-uuid",
+  "answers": { "..." },
+  "submittedAt": "2026-06-16T10:05:00.000Z"
+}
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `400` | `This form is not accepting responses` |
+| `400` | `A required field is missing` |
+| `400` | `Invalid file reference` |
+
+---
+
+### `GET /forms/:id/responses`
+
+List all submissions for a form (excludes soft-deleted responses).
+
+**Auth:** Admin
+
+**Success `200`:**
+
+```json
+[
+  {
+    "id": "resp-uuid",
+    "formId": "form-uuid",
+    "answers": { "..." },
+    "submittedAt": "2026-06-16T10:05:00.000Z"
+  }
+]
+```
+
+---
+
+### `DELETE /forms/:id/responses/:responseId`
+
+Soft-delete a single submission. S3 files are cleaned up in the background.
+
+**Auth:** Admin
+
+**Success `200`:**
+
+```json
+{
+  "message": "Response deleted successfully"
+}
+```
+
+---
+
+### `POST /forms/:id/uploads/presign`
+
+Get a presigned S3 URL for direct file upload (client uploads to S3, not through the API).
+
+**Auth:** Public  
+**Rate limit:** 20/min
+
+**Request body:**
+
+```json
+{
+  "fieldId": "resume",
+  "fileName": "resume.pdf",
+  "contentType": "application/pdf",
+  "size": 204800
+}
+```
+
+**Success `201`:**
+
+```json
+{
+  "uploadUrl": "https://your-bucket.s3.ap-south-1.amazonaws.com/forms/...?X-Amz-...",
+  "key": "forms/form-uuid/resume/f8e9d0c1_resume.pdf",
+  "url": "https://your-bucket.s3.ap-south-1.amazonaws.com/forms/form-uuid/resume/f8e9d0c1_resume.pdf",
+  "expiresIn": 300
+}
+```
+
+Upload the file directly to S3:
+
+```http
+PUT <uploadUrl>
+Content-Type: application/pdf
+
+<binary>
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `400` | `File field not found on this form` |
+| `400` | `File exceeds the maximum allowed size` |
+| `400` | `File type is not allowed` |
+
+---
+
+### `GET /forms/:id/responses/:responseId/files/:fieldId/download`
+
+Get a presigned download URL for an uploaded file in a submission.
+
+**Auth:** Admin
+
+**Success `200`:**
+
+```json
+{
+  "downloadUrl": "https://your-bucket.s3...?X-Amz-...",
+  "expiresIn": 3600
+}
+```
+
+**Errors:**
+
+| Status | Message |
+|--------|---------|
+| `404` | `Uploaded file not found` |
+
+---
+
 ## Frontend integration notes
 
 ### Storing tokens
@@ -996,3 +1308,13 @@ Static routes like `/admins/me/password` and `/agents/me/password` are defined b
 | `DELETE` | `/agents/:id` | Admin | Delete agent |
 | `PATCH` | `/agents/:id/status` | Admin | Toggle agent status |
 | `PATCH` | `/agents/:id/reset-password` | Admin | Reset agent password |
+| `POST` | `/forms` | Admin | Create form schema |
+| `GET` | `/forms` | Admin | List forms |
+| `GET` | `/forms/:id` | Public | Get form schema |
+| `PUT` | `/forms/:id` | Admin | Update form schema |
+| `DELETE` | `/forms/:id` | Admin | Soft-delete form + responses |
+| `POST` | `/forms/:id/responses` | Public | Submit form response |
+| `GET` | `/forms/:id/responses` | Admin | List submissions |
+| `DELETE` | `/forms/:id/responses/:responseId` | Admin | Soft-delete submission |
+| `POST` | `/forms/:id/uploads/presign` | Public | Presigned S3 upload URL |
+| `GET` | `/forms/:id/responses/:responseId/files/:fieldId/download` | Admin | Presigned S3 download URL |

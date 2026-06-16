@@ -34,6 +34,21 @@ export const guMessages: MessageTree = {
     deletedSuccess: 'એજન્ટ સફળતાપૂર્વક કાઢી નાખ્યો',
     loginIdGenerationFailed: 'અનન્ય એજન્ટ લૉગિન આઈડી બનાવવામાં નિષ્ફળ',
   },
+  form: {
+    notFound: 'ફોર્મ મળ્યો નથી',
+    notPublished: 'આ ફોર્મ પ્રતિસાદ સ્વીકારતું નથી',
+    deleted: 'ફોર્મ સફળતાપૂર્વક કાઢી નાખ્યો',
+    responseNotFound: 'પ્રતિસાદ મળ્યો નથી',
+    responseDeleted: 'પ્રતિસાદ સફળતાપૂર્વક કાઢી નાખ્યો',
+    duplicateFieldId: 'સ્કીમામાં ડુપ્લિકેટ ફીલ્ડ આઈડી',
+    optionsRequired: 'આ ફીલ્ડ પ્રકાર માટે ઓછામાં ઓછો એક વિકલ્પ જરૂરી છે',
+    requiredFieldMissing: 'જરૂરી ફીલ્ડ ગુમ થયેલ છે',
+    fileFieldNotFound: 'આ ફોર્મ પર ફાઇલ ફીલ્ડ મળી નથી',
+    fileTooLarge: 'ફાઇલ મહત્તમ મંજૂર કદ કરતાં મોટી છે',
+    fileTypeNotAllowed: 'ફાઇલ પ્રકાર મંજૂર નથી',
+    fileNotFound: 'અપલોડ કરેલી ફાઇલ મળી નથી',
+    invalidFileKey: 'અમાન્ય ફાઇલ સંદર્ભ',
+  },
   otp: {
     invalidOrExpired: 'અમાન્ય અથવા સમાપ્ત OTP',
     maxAttemptsExceeded: 'મહત્તમ OTP પ્રયાસો ઓળંગાઈ ગયા',
@@ -47,6 +62,30 @@ export const guMessages: MessageTree = {
     },
     name: {
       required: 'નામ જરૂરી છે',
+    },
+    title: {
+      required: 'શીર્ષક જરૂરી છે',
+    },
+    fieldId: {
+      required: 'ફીલ્ડ આઈડી જરૂરી છે',
+    },
+    label: {
+      required: 'લેબલ જરૂરી છે',
+    },
+    fileName: {
+      required: 'ફાઇલ નામ જરૂરી છે',
+    },
+    contentType: {
+      required: 'સામગ્રી પ્રકાર જરૂરી છે',
+    },
+    fileSize: {
+      required: 'ફાઇલ કદ જરૂરી છે',
+    },
+    fileKey: {
+      required: 'ફાઇલ કી જરૂરી છે',
+    },
+    fileUrl: {
+      invalid: 'ફાઇલ URL અમાન્ય છે',
     },
     email: {
       invalid: 'અમાન્ય ઇમેઇલ સરનામું',

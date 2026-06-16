@@ -34,6 +34,21 @@ export const hiMessages: MessageTree = {
     deletedSuccess: 'एजेंट सफलतापूर्वक हटाया गया',
     loginIdGenerationFailed: 'अद्वितीय एजेंट लॉगिन आईडी बनाने में विफल',
   },
+  form: {
+    notFound: 'फ़ॉर्म नहीं मिला',
+    notPublished: 'यह फ़ॉर्म प्रतिक्रियाएँ स्वीकार नहीं कर रहा है',
+    deleted: 'फ़ॉर्म सफलतापूर्वक हटाया गया',
+    responseNotFound: 'प्रतिक्रिया नहीं मिली',
+    responseDeleted: 'प्रतिक्रिया सफलतापूर्वक हटाई गई',
+    duplicateFieldId: 'स्कीमा में डुप्लिकेट फ़ील्ड आईडी',
+    optionsRequired: 'इस फ़ील्ड प्रकार के लिए कम से कम एक विकल्प आवश्यक है',
+    requiredFieldMissing: 'एक आवश्यक फ़ील्ड गायब है',
+    fileFieldNotFound: 'इस फ़ॉर्म पर फ़ाइल फ़ील्ड नहीं मिली',
+    fileTooLarge: 'फ़ाइल अधिकतम अनुमत आकार से अधिक है',
+    fileTypeNotAllowed: 'फ़ाइल प्रकार की अनुमति नहीं है',
+    fileNotFound: 'अपलोड की गई फ़ाइल नहीं मिली',
+    invalidFileKey: 'अमान्य फ़ाइल संदर्भ',
+  },
   otp: {
     invalidOrExpired: 'अमान्य या समाप्त OTP',
     maxAttemptsExceeded: 'अधिकतम OTP प्रयास पार हो गए',
@@ -47,6 +62,30 @@ export const hiMessages: MessageTree = {
     },
     name: {
       required: 'नाम आवश्यक है',
+    },
+    title: {
+      required: 'शीर्षक आवश्यक है',
+    },
+    fieldId: {
+      required: 'फ़ील्ड आईडी आवश्यक है',
+    },
+    label: {
+      required: 'लेबल आवश्यक है',
+    },
+    fileName: {
+      required: 'फ़ाइल नाम आवश्यक है',
+    },
+    contentType: {
+      required: 'सामग्री प्रकार आवश्यक है',
+    },
+    fileSize: {
+      required: 'फ़ाइल आकार आवश्यक है',
+    },
+    fileKey: {
+      required: 'फ़ाइल कुंजी आवश्यक है',
+    },
+    fileUrl: {
+      invalid: 'फ़ाइल URL अमान्य है',
     },
     email: {
       invalid: 'अमान्य ईमेल पता',

@@ -30,6 +30,21 @@ export const enMessages = {
     deletedSuccess: 'Agent deleted successfully',
     loginIdGenerationFailed: 'Failed to generate unique agent login ID',
   },
+  form: {
+    notFound: 'Form not found',
+    notPublished: 'This form is not accepting responses',
+    deleted: 'Form deleted successfully',
+    responseNotFound: 'Response not found',
+    responseDeleted: 'Response deleted successfully',
+    duplicateFieldId: 'Duplicate field ID in schema',
+    optionsRequired: 'This field type requires at least one option',
+    requiredFieldMissing: 'A required field is missing',
+    fileFieldNotFound: 'File field not found on this form',
+    fileTooLarge: 'File exceeds the maximum allowed size',
+    fileTypeNotAllowed: 'File type is not allowed',
+    fileNotFound: 'Uploaded file not found',
+    invalidFileKey: 'Invalid file reference',
+  },
   otp: {
     invalidOrExpired: 'Invalid or expired OTP',
     maxAttemptsExceeded: 'Maximum OTP attempts exceeded',
@@ -43,6 +58,30 @@ export const enMessages = {
     },
     name: {
       required: 'Name is required',
+    },
+    title: {
+      required: 'Title is required',
+    },
+    fieldId: {
+      required: 'Field ID is required',
+    },
+    label: {
+      required: 'Label is required',
+    },
+    fileName: {
+      required: 'File name is required',
+    },
+    contentType: {
+      required: 'Content type is required',
+    },
+    fileSize: {
+      required: 'File size is required',
+    },
+    fileKey: {
+      required: 'File key is required',
+    },
+    fileUrl: {
+      invalid: 'File URL is invalid',
     },
     email: {
       invalid: 'Invalid email address',

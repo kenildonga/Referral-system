@@ -21,7 +21,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { JwtAdminAuthGuard } from '../common/guards/jwt-admin-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 import { SuperAdmin } from '../common/decorators/super-admin.decorator';
 
@@ -52,7 +52,7 @@ export class AdminController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin logout' })
   logout(@Req() req: AuthenticatedRequest) {
@@ -60,7 +60,7 @@ export class AdminController {
   }
 
   @Patch('me/password')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAdminAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change own password' })
   changePassword(

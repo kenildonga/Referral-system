@@ -20,21 +20,6 @@ type SafeUser = Omit<User, 'agent'>;
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 
-const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
-  id: true,
-  agentLoginId: true,
-  name: true,
-  phone: true,
-  email: true,
-  isActive: true,
-  state: true,
-  city: true,
-  lastLogin: true,
-  createdById: true,
-  createdAt: true,
-  updatedAt: true,
-};
-
 @Injectable()
 export class UserService {
   constructor(
@@ -102,7 +87,10 @@ export class UserService {
         city: cityName,
         isActive: true,
       },
-      select: SAFE_AGENT_SELECT,
+      select: {
+        id: true,
+        name: true,
+      },
       order: { name: 'ASC' },
     });
   }

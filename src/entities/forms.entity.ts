@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { Admin } from './admins.entity';
 import { FormResponse } from './form-responses.entity';
+import { SubmissionUserType } from './enum';
 
 @Entity('forms')
 export class Form {
@@ -28,6 +29,12 @@ export class Form {
 
   @Column({ type: 'boolean', default: true })
   isPublished: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: SubmissionUserType,
+  })
+  submissionUserType: SubmissionUserType;
 
   @Column({ type: 'uuid' })
   createdById: string;

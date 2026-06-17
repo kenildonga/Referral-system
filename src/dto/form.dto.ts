@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { SubmissionUserType } from '../entities/enum';
 
 const FieldValidationSchema = z.object({
   required: z.boolean().optional(),
@@ -37,6 +38,7 @@ export const CreateFormSchema = z.object({
   description: z.string().max(2000).optional(),
   fields: z.array(FormFieldSchema).default([]),
   isPublished: z.boolean().default(true),
+  submissionUserType: z.nativeEnum(SubmissionUserType),
 });
 
 export const UpdateFormSchema = z
@@ -45,6 +47,7 @@ export const UpdateFormSchema = z
     description: z.string().max(2000).optional(),
     fields: z.array(FormFieldSchema).optional(),
     isPublished: z.boolean().optional(),
+    submissionUserType: z.nativeEnum(SubmissionUserType).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'validation.atLeastOneField',

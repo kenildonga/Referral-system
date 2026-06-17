@@ -66,6 +66,7 @@ export class FormService {
         title: true,
         description: true,
         isPublished: true,
+        submissionUserType: true,
         createdAt: true,
         updatedAt: true,
       },

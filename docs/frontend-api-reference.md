@@ -1,6 +1,6 @@
 # Form Builder — Frontend API Reference
 
-Practical API guide for React (or similar) frontends integrating the **Referral-system** form builder and public form renderer.
+Practical API guide for React (or similar) frontends integrating the **Referral-system** form builder and agent-facing form UI.
 
 > For admin/agent management endpoints (user CRUD, agents, password reset), see [api-reference.md](./api-reference.md).
 
@@ -23,11 +23,13 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 ---
 
-## Authentication (admin JWT)
+## Authentication
 
-The form **admin UI** (create/list/update forms, view submissions, download files) uses an **admin JWT** obtained from login.
+All form endpoints require a JWT. Use an **admin** token for the form-builder admin UI (schema management, submissions) or an **agent** token for the agent app (fill forms, view submissions). Admin and agent tokens are not interchangeable.
 
-### Obtain a token
+### Admin token
+
+Obtain via `POST /admins/login`.
 
 ```http
 POST /admins/login
@@ -59,18 +61,66 @@ Content-Type: application/json
 
 **Rate limit:** 5 requests / minute.
 
-Store `accessToken` (e.g. `localStorage`, `sessionStorage`) and send it on protected requests:
+Store `accessToken` (e.g. `localStorage`, `sessionStorage`) and send it on all form requests:
 
 ```http
 Authorization: Bearer <accessToken>
 ```
 
-### JWT payload (for UI hints only)
+### Agent token
+
+Obtain via `POST /agents/login`.
+
+```http
+POST /agents/login
+Content-Type: application/json
+
+{
+  "agentLoginId": "AGT-X7K2M9",
+  "password": "aB3xY9kL2mN4"
+}
+```
+
+**Success `200`:**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+  "agent": {
+    "id": "uuid",
+    "agentLoginId": "AGT-X7K2M9",
+    "name": "Jane Agent",
+    "phone": null,
+    "email": null,
+    "isActive": true,
+    "lastLogin": "2026-06-16T10:00:00.000Z",
+    "createdById": "uuid",
+    "createdAt": "2026-06-16T09:00:00.000Z",
+    "updatedAt": "2026-06-16T10:00:00.000Z"
+  }
+}
+```
+
+**Rate limit:** 5 requests / minute.
+
+### JWT payloads (for UI hints only)
+
+Admin:
 
 ```json
 {
   "id": "uuid",
   "role": "admin | superAdmin",
+  "tokenVersion": 0
+}
+```
+
+Agent:
+
+```json
+{
+  "id": "uuid",
+  "type": "agent",
   "tokenVersion": 0
 }
 ```
@@ -81,13 +131,12 @@ Decode client-side only for **UI** (show/hide menus). The API enforces roles ser
 
 | Level | Requirement | Form endpoints |
 |-------|-------------|----------------|
-| **Public** | No token | `GET /forms/:id`, `POST /forms/:id/responses`, `POST /forms/:id/uploads/presign` |
-| **Admin** | Valid admin JWT (`role`: `admin` or `superAdmin`) | Update/delete form, list/delete responses, download files |
-| **Super Admin** | Admin JWT + `role: "superAdmin"` | Create form, list all forms |
+| **Authenticated** | Valid admin **or** agent JWT | `GET /forms`, `GET /forms/:id`, `POST /forms/:id/responses`, `POST /forms/:id/uploads/presign`, `GET /forms/:id/responses`, `DELETE /forms/:id/responses/:responseId`, file download |
+| **Super Admin** | Admin JWT + `role: "superAdmin"` | `POST /forms`, `PUT /forms/:id`, `DELETE /forms/:id` |
 
 ### Token invalidation
 
-Tokens stop working after logout, password change/reset, or account deactivation. The API returns `401` with a localized message (e.g. `"Invalid or expired token"`). Clear stored tokens and redirect to login.
+Tokens stop working after logout, password change/reset, or account deactivation. The API returns `401` with a localized message (e.g. `"Invalid or expired token"`). Clear stored tokens and redirect to the appropriate login page (admin vs agent).
 
 ### cURL — login
 
@@ -95,6 +144,14 @@ Tokens stop working after logout, password change/reset, or account deactivation
 curl -s -X POST "$VITE_API_URL/admins/login" \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"password1"}'
+```
+
+### cURL — agent login
+
+```bash
+curl -s -X POST "$VITE_API_URL/agents/login" \
+  -H "Content-Type: application/json" \
+  -d '{"agentLoginId":"AGT-X7K2M9","password":"aB3xY9kL2mN4"}'
 ```
 
 ---
@@ -134,6 +191,8 @@ type FieldType =
   | 'checkbox_group'
   | 'file';
 
+type SubmissionUserType = 'agent' | 'user';
+
 interface FieldValidation {
   required?: boolean;
   minLength?: number;
@@ -160,6 +219,7 @@ interface Form {
   description: string | null;
   fields: FormField[];
   isPublished: boolean;
+  submissionUserType: SubmissionUserType;
   createdById: string;
   createdAt: string;            // ISO 8601
   updatedAt: string;
@@ -171,6 +231,7 @@ interface FormSummary {
   title: string;
   description: string | null;
   isPublished: boolean;
+  submissionUserType: SubmissionUserType;
   createdAt: string;
   updatedAt: string;
 }
@@ -238,15 +299,15 @@ Base path: `/forms`
 | Method | Path | Auth | Rate limit |
 |--------|------|------|------------|
 | `POST` | `/forms` | Super Admin | 60/min (global) |
-| `GET` | `/forms` | Super Admin | 60/min |
-| `GET` | `/forms/:id` | Public | 60/min |
-| `PUT` | `/forms/:id` | Admin | 60/min |
-| `DELETE` | `/forms/:id` | Admin | 60/min |
-| `POST` | `/forms/:id/responses` | Public | **10/min** |
-| `GET` | `/forms/:id/responses` | Admin | 60/min |
-| `DELETE` | `/forms/:id/responses/:responseId` | Admin | 60/min |
-| `POST` | `/forms/:id/uploads/presign` | Public | **20/min** |
-| `GET` | `/forms/:id/responses/:responseId/files/:fieldId/download` | Admin | 60/min |
+| `GET` | `/forms` | Authenticated | 60/min |
+| `GET` | `/forms/:id` | Authenticated | 60/min |
+| `PUT` | `/forms/:id` | Super Admin | 60/min |
+| `DELETE` | `/forms/:id` | Super Admin | 60/min |
+| `POST` | `/forms/:id/responses` | Authenticated | **10/min** |
+| `GET` | `/forms/:id/responses` | Authenticated | 60/min |
+| `DELETE` | `/forms/:id/responses/:responseId` | Authenticated | 60/min |
+| `POST` | `/forms/:id/uploads/presign` | Authenticated | **20/min** |
+| `GET` | `/forms/:id/responses/:responseId/files/:fieldId/download` | Authenticated | 60/min |
 
 Global default: **60 requests / minute** per IP. Exceeded → `429 Too Many Requests`.
 
@@ -288,7 +349,8 @@ Global default: **60 requests / minute** per IP. Exceeded → `429 Too Many Requ
       }
     }
   ],
-  "isPublished": true
+  "isPublished": true,
+  "submissionUserType": "agent"
 }
 ```
 
@@ -298,6 +360,7 @@ Global default: **60 requests / minute** per IP. Exceeded → `429 Too Many Requ
 | `description` | `string` | No | Max 2000 chars |
 | `fields` | `FormField[]` | No | Default `[]` |
 | `isPublished` | `boolean` | No | Default `true` |
+| `submissionUserType` | `'agent' \| 'user'` | Yes | Who may submit this form |
 
 **Success `201`:** Full `Form` object. Save `id` as your `formId`.
 
@@ -317,14 +380,14 @@ Global default: **60 requests / minute** per IP. Exceeded → `429 Too Many Requ
 curl -s -X POST "$VITE_API_URL/forms" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"title":"Contact Us","fields":[{"id":"name","type":"text","label":"Name"}]}'
+  -d '{"title":"Contact Us","submissionUserType":"agent","fields":[{"id":"name","type":"text","label":"Name"}]}'
 ```
 
 ---
 
 ### `GET /forms` — List forms
 
-**Auth:** Super Admin
+**Auth:** Authenticated (admin or agent JWT)
 
 Returns summaries only (no `fields`).
 
@@ -337,6 +400,7 @@ Returns summaries only (no `fields`).
     "title": "Contact Us",
     "description": "Reach out to our team",
     "isPublished": true,
+    "submissionUserType": "agent",
     "createdAt": "2026-06-16T10:00:00.000Z",
     "updatedAt": "2026-06-16T10:00:00.000Z"
   }
@@ -347,11 +411,11 @@ Ordered by `updatedAt` descending.
 
 ---
 
-### `GET /forms/:id` — Get form schema (public render)
+### `GET /forms/:id` — Get form schema
 
-**Auth:** Public
+**Auth:** Authenticated (admin or agent JWT)
 
-Used by the public form page to load schema at runtime. Works for unpublished forms too (check `isPublished` before allowing submit).
+Load schema at runtime before rendering. Works for unpublished forms too (check `isPublished` before allowing submit).
 
 **Success `200`:** Full `Form` object.
 
@@ -360,18 +424,20 @@ Used by the public form page to load schema at runtime. Works for unpublished fo
 | Status | i18n key | English message |
 |--------|----------|-----------------|
 | `404` | `form.notFound` | Form not found |
+| `401` | `auth.*` | Missing/invalid token |
 
 **cURL:**
 
 ```bash
-curl -s "$VITE_API_URL/forms/550e8400-e29b-41d4-a716-446655440000"
+curl -s "$VITE_API_URL/forms/550e8400-e29b-41d4-a716-446655440000" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
 
 ### `PUT /forms/:id` — Update form schema
 
-**Auth:** Admin (any active admin)
+**Auth:** Super Admin
 
 At least one property required in body.
 
@@ -382,19 +448,20 @@ At least one property required in body.
   "title": "Contact Us (updated)",
   "description": "Updated copy",
   "fields": [],
-  "isPublished": false
+  "isPublished": false,
+  "submissionUserType": "user"
 }
 ```
 
 **Success `200`:** Updated `Form`.
 
-**Errors:** Same validation errors as create (`duplicateFieldId`, `optionsRequired`, Zod).
+**Errors:** Same validation errors as create (`duplicateFieldId`, `optionsRequired`, Zod), plus `401` / `403` for missing token or non–super-admin.
 
 ---
 
 ### `DELETE /forms/:id` — Soft-delete form
 
-**Auth:** Admin
+**Auth:** Super Admin
 
 Soft-deletes the form **and all its responses**. S3 files from responses are deleted in the background.
 
@@ -412,7 +479,7 @@ After deletion, `GET /forms/:id` returns `404`. The record remains in the DB wit
 
 ### `POST /forms/:id/responses` — Submit response
 
-**Auth:** Public  
+**Auth:** Authenticated (admin or agent JWT)  
 **Rate limit:** 10 / minute
 
 **Body:**
@@ -456,6 +523,7 @@ Keys in `answers` must match field `id` values from the form schema.
 | `400` | `form.notPublished` | This form is not accepting responses |
 | `400` | `form.requiredFieldMissing` | A required field is missing |
 | `400` | `form.invalidFileKey` | Invalid file reference |
+| `401` | `auth.*` | Missing/invalid token |
 | `404` | `form.notFound` | Form not found |
 | `429` | — | Too many requests |
 
@@ -464,6 +532,7 @@ Keys in `answers` must match field `id` values from the form schema.
 ```bash
 curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"answers":{"full_name":"Jane Doe"}}'
 ```
 
@@ -471,7 +540,7 @@ curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
 
 ### `GET /forms/:id/responses` — List submissions
 
-**Auth:** Admin
+**Auth:** Authenticated (admin or agent JWT)
 
 **Success `200`:** `FormResponse[]`, newest first. Soft-deleted responses are excluded.
 
@@ -479,7 +548,7 @@ curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
 
 ### `DELETE /forms/:id/responses/:responseId` — Soft-delete submission
 
-**Auth:** Admin
+**Auth:** Authenticated (admin or agent JWT)
 
 **Success `200`:**
 
@@ -509,18 +578,21 @@ sequenceDiagram
   participant API as NestJS API
   participant S3 as S3
 
-  UI->>API: POST /forms/:id/uploads/presign
+  UI->>API: POST /forms/:id/uploads/presign (Bearer token)
   API-->>UI: uploadUrl, key, url, expiresIn
   UI->>S3: PUT uploadUrl (binary + Content-Type)
   S3-->>UI: 200 OK
-  UI->>API: POST /forms/:id/responses (answers with StoredFileMeta)
+  UI->>API: POST /forms/:id/responses (Bearer token, answers with StoredFileMeta)
   API-->>UI: 201 FormResponse
 ```
 
 ### Step 1 — Request presigned upload URL
 
+**Auth:** Authenticated (admin or agent JWT)
+
 ```http
 POST /forms/:id/uploads/presign
+Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
@@ -610,6 +682,7 @@ The server verifies that `key` starts with `forms/{formId}/{fieldId}/`.
 # 1. Presign
 PRESIGN=$(curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/uploads/presign" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"fieldId":"resume","fileName":"resume.pdf","contentType":"application/pdf","size":204800}')
 
 UPLOAD_URL=$(echo "$PRESIGN" | jq -r '.uploadUrl')
@@ -622,28 +695,31 @@ curl -s -X PUT "$UPLOAD_URL" \
 # 3. Submit (use key/url from presign response)
 curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d "{\"answers\":{\"resume\":$(echo "$PRESIGN" | jq '{kind:"file", key:.key, url:.url, name:"resume.pdf", size:204800, type:"application/pdf"}')}}"
 ```
 
 ---
 
-## File download flow (admin)
+## File download flow
 
-Submissions store file **metadata** only. Admins fetch a short-lived download URL.
+Submissions store file **metadata** only. Authenticated users fetch a short-lived download URL.
 
 ```mermaid
 sequenceDiagram
-  participant Admin as Admin UI
+  participant UI as Frontend
   participant API as NestJS API
   participant S3 as S3
 
-  Admin->>API: GET .../files/:fieldId/download (Bearer token)
-  API-->>Admin: downloadUrl, expiresIn
-  Admin->>S3: GET downloadUrl
-  S3-->>Admin: file bytes
+  UI->>API: GET .../files/:fieldId/download (Bearer token)
+  API-->>UI: downloadUrl, expiresIn
+  UI->>S3: GET downloadUrl
+  S3-->>UI: file bytes
 ```
 
 ### Request download URL
+
+**Auth:** Authenticated (admin or agent JWT)
 
 ```http
 GET /forms/:id/responses/:responseId/files/:fieldId/download
@@ -669,7 +745,7 @@ Open in a new tab, or `fetch` + blob download:
 
 ```ts
 const { downloadUrl } = await api(`/forms/${formId}/responses/${responseId}/files/${fieldId}/download`, {
-  token: adminToken,
+  token,
 });
 window.open(downloadUrl, '_blank');
 ```
@@ -729,7 +805,7 @@ All errors:
 |------|------|
 | `400` | Validation, unpublished form, missing required field, bad file key/type/size |
 | `401` | Missing/invalid/expired JWT |
-| `403` | Valid JWT but wrong role (e.g. non–super-admin on `POST /forms`) |
+| `403` | Valid JWT but wrong role (e.g. non–super-admin on `POST /forms`, `PUT /forms/:id`, `DELETE /forms/:id`) |
 | `404` | Form, response, or file not found (or soft-deleted) |
 | `429` | Rate limit exceeded |
 | `500` | Server error |
@@ -824,11 +900,11 @@ async function api<T>(
   return data as T;
 }
 
-// Public: load form for rendering
-export const getFormSchema = (formId: string) =>
-  api<Form>(`/forms/${formId}`).then(toFormSchema);
+// Authenticated: load form for rendering
+export const getFormSchema = (formId: string, token: string) =>
+  api<Form>(`/forms/${formId}`, { token }).then(toFormSchema);
 
-// Admin: list submissions
+// Authenticated: list submissions
 export const listResponses = (formId: string, token: string) =>
   api<FormResponse[]>(`/forms/${formId}/responses`, { token });
 ```
@@ -837,11 +913,11 @@ export const listResponses = (formId: string, token: string) =>
 
 - [ ] Set `VITE_API_URL` per environment
 - [ ] Send `Accept-Language` on all requests
-- [ ] Super-admin UI: create + list forms (`POST /forms`, `GET /forms`)
-- [ ] Admin UI: edit, delete, view responses, download files
-- [ ] Public form: `GET /forms/:id` → render → presign/upload → `POST .../responses`
+- [ ] Super-admin UI: create, update, delete forms (`POST /forms`, `PUT /forms/:id`, `DELETE /forms/:id`)
+- [ ] Authenticated UI: list forms, get schema, submit responses, presign/upload, view/delete responses, download files
+- [ ] Agent app: agent login → `GET /forms/:id` → render → presign/upload → `POST .../responses`
 - [ ] Block submit when `isPublished === false`
-- [ ] Handle `401` globally (clear token, redirect to admin login)
+- [ ] Handle `401` globally (clear token, redirect to admin or agent login)
 - [ ] Handle `429` with retry/backoff on submit and presign
 - [ ] For file fields: never POST multipart to the API; always use presign flow
 

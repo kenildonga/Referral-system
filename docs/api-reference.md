@@ -246,6 +246,12 @@ Zod validation failures return `message` as an array:
 type AdminRole = 'superAdmin' | 'admin';
 ```
 
+### `SubmissionUserType`
+
+```ts
+type SubmissionUserType = 'agent' | 'user';
+```
+
 ### Password rules
 
 Applies to admin passwords and agent password changes:
@@ -934,7 +940,8 @@ Create a new form schema.
       "validation": { "required": true }
     }
   ],
-  "isPublished": true
+  "isPublished": true,
+  "submissionUserType": "agent"
 }
 ```
 
@@ -944,6 +951,7 @@ Create a new form schema.
 | `description` | `string` | No | Max 2000 chars |
 | `fields` | `FormField[]` | No | Default `[]` |
 | `isPublished` | `boolean` | No | Default `true` |
+| `submissionUserType` | `'agent' \| 'user'` | Yes | Who may submit this form |
 
 **Success `201`:** Full form object including `id` (use as `formId` on the client).
 
@@ -971,6 +979,7 @@ List all forms (summary fields only — no `fields` array).
     "title": "Contact Us",
     "description": "Reach out to our team",
     "isPublished": true,
+    "submissionUserType": "agent",
     "createdAt": "2026-06-16T10:00:00.000Z",
     "updatedAt": "2026-06-16T10:00:00.000Z"
   }
@@ -994,6 +1003,7 @@ Get full form schema by ID. Public — used at runtime to render a form.
   "description": "Reach out to our team",
   "fields": [ "..." ],
   "isPublished": true,
+  "submissionUserType": "agent",
   "createdById": "uuid",
   "createdAt": "2026-06-16T10:00:00.000Z",
   "updatedAt": "2026-06-16T10:00:00.000Z"
@@ -1030,7 +1040,8 @@ Save / replace form schema.
 ```json
 {
   "title": "Contact Us (updated)",
-  "fields": [ "..." ]
+  "fields": [ "..." ],
+  "submissionUserType": "user"
 }
 ```
 

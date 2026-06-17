@@ -30,6 +30,17 @@ export const enMessages = {
     deletedSuccess: 'Agent deleted successfully',
     loginIdGenerationFailed: 'Failed to generate unique agent login ID',
   },
+  user: {
+    notFound: 'User with ID {{id}} not found',
+    agentNotFound: 'Agent with ID {{id}} not found',
+    agentInactive: 'Selected agent is not active',
+    agentLocationMismatch:
+      'Selected agent does not match the provided state and city',
+  },
+  location: {
+    stateNotFound: 'State with ID {{id}} not found',
+    cityNotFound: 'City with ID {{id}} not found',
+  },
   form: {
     notFound: 'Form not found',
     notPublished: 'This form is not accepting responses',
@@ -58,6 +69,30 @@ export const enMessages = {
     },
     name: {
       required: 'Name is required',
+    },
+    firstName: {
+      required: 'First name is required',
+    },
+    lastName: {
+      required: 'Last name is required',
+    },
+    phoneNumber: {
+      invalid: 'Phone number must be exactly 10 digits with no country code',
+    },
+    agentId: {
+      invalid: 'Invalid agent ID',
+    },
+    state: {
+      required: 'State is required',
+    },
+    city: {
+      required: 'City is required',
+    },
+    stateId: {
+      invalid: 'Invalid state ID',
+    },
+    cityId: {
+      invalid: 'Invalid city ID',
     },
     title: {
       required: 'Title is required',

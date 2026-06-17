@@ -7,6 +7,8 @@ import { OtpService } from './helpers/otp.service';
 import { S3Service } from './helpers/s3.service';
 import { JwtAdminAuthGuard } from './guards/jwt-admin-auth.guard';
 import { JwtAgentAuthGuard } from './guards/jwt-agent-auth.guard';
+import { JwtAdminOrAgentAuthGuard } from './guards/jwt-admin-or-agent-auth.guard';
+import { AdminRoleGuard } from './guards/admin-role.guard';
 import { SuperAdminGuard } from './guards/super-admin.guard';
 
 @Module({
@@ -16,6 +18,8 @@ import { SuperAdminGuard } from './guards/super-admin.guard';
     S3Service,
     JwtAdminAuthGuard,
     JwtAgentAuthGuard,
+    JwtAdminOrAgentAuthGuard,
+    AdminRoleGuard,
     SuperAdminGuard,
   ],
   exports: [
@@ -23,6 +27,8 @@ import { SuperAdminGuard } from './guards/super-admin.guard';
     S3Service,
     JwtAdminAuthGuard,
     JwtAgentAuthGuard,
+    JwtAdminOrAgentAuthGuard,
+    AdminRoleGuard,
     SuperAdminGuard,
   ],
 })

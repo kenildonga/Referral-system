@@ -5,15 +5,20 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admin } from './entities/admins.entity';
 import { Agent } from './entities/agents.entity';
+import { User } from './entities/users.entity';
+import { State } from './entities/states.entity';
+import { City } from './entities/cities.entity';
 import { Form } from './entities/forms.entity';
 import { FormResponse } from './entities/form-responses.entity';
 import { PasswordResetOtp } from './entities/password-reset-otp.entity';
 import { AdminController } from './controllers/admin.controller';
 import { AgentController } from './controllers/agent.controller';
 import { FormController } from './controllers/form.controller';
+import { UserController } from './controllers/user.controller';
 import { AdminService } from './services/admin.service';
 import { AgentService } from './services/agent.service';
 import { FormService } from './services/form.service';
+import { UserService } from './services/user.service';
 import { I18nModule } from './i18n/i18n.module';
 import { CommonModule } from './common/common.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -49,16 +54,20 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     TypeOrmModule.forFeature([
       Admin,
       Agent,
+      User,
+      State,
+      City,
       PasswordResetOtp,
       Form,
       FormResponse,
     ]),
   ],
-  controllers: [AdminController, AgentController, FormController],
+  controllers: [AdminController, AgentController, FormController, UserController],
   providers: [
     AdminService,
     AgentService,
     FormService,
+    UserService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

@@ -34,6 +34,17 @@ export const guMessages: MessageTree = {
     deletedSuccess: 'એજન્ટ સફળતાપૂર્વક કાઢી નાખ્યો',
     loginIdGenerationFailed: 'અનન્ય એજન્ટ લૉગિન આઈડી બનાવવામાં નિષ્ફળ',
   },
+  user: {
+    notFound: 'આઈડી {{id}} સાથેનો વપરાશકર્તા મળ્યો નથી',
+    agentNotFound: 'આઈડી {{id}} સાથેનો એજન્ટ મળ્યો નથી',
+    agentInactive: 'પસંદ કરેલ એજન્ટ સક્રિય નથી',
+    agentLocationMismatch:
+      'પસંદ કરેલ એજન્ટ આપેલા રાજ્ય અને શહેર સાથે મેળ ખાતો નથી',
+  },
+  location: {
+    stateNotFound: 'આઈડી {{id}} સાથેનું રાજ્ય મળ્યું નથી',
+    cityNotFound: 'આઈડી {{id}} સાથેનું શહેર મળ્યું નથી',
+  },
   form: {
     notFound: 'ફોર્મ મળ્યો નથી',
     notPublished: 'આ ફોર્મ પ્રતિસાદ સ્વીકારતું નથી',
@@ -62,6 +73,30 @@ export const guMessages: MessageTree = {
     },
     name: {
       required: 'નામ જરૂરી છે',
+    },
+    firstName: {
+      required: 'પ્રથમ નામ જરૂરી છે',
+    },
+    lastName: {
+      required: 'છેલ્લું નામ જરૂરી છે',
+    },
+    phoneNumber: {
+      invalid: 'ફોન નંબર દેશ કોડ વગર ચોક્કસ 10 અંકનો હોવો જોઈએ',
+    },
+    agentId: {
+      invalid: 'અમાન્ય એજન્ટ આઈડી',
+    },
+    state: {
+      required: 'રાજ્ય જરૂરી છે',
+    },
+    city: {
+      required: 'શહેર જરૂરી છે',
+    },
+    stateId: {
+      invalid: 'અમાન્ય રાજ્ય આઈડી',
+    },
+    cityId: {
+      invalid: 'અમાન્ય શહેર આઈડી',
     },
     title: {
       required: 'શીર્ષક જરૂરી છે',

@@ -27,6 +27,8 @@ const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
   phone: true,
   email: true,
   isActive: true,
+  state: true,
+  city: true,
   lastLogin: true,
   createdById: true,
   createdAt: true,
@@ -127,6 +129,8 @@ export class AgentService {
       name: createAgentDto.name,
       phone: createAgentDto.phone,
       email: createAgentDto.email,
+      state: createAgentDto.state,
+      city: createAgentDto.city,
       isActive: true,
       tokenVersion: 0,
       createdById,
@@ -174,6 +178,14 @@ export class AgentService {
 
     if (updateAgentDto.phone !== undefined) {
       agent.phone = updateAgentDto.phone;
+    }
+
+    if (updateAgentDto.state !== undefined) {
+      agent.state = updateAgentDto.state;
+    }
+
+    if (updateAgentDto.city !== undefined) {
+      agent.city = updateAgentDto.city;
     }
 
     const saved = await this.agentRepository.save(agent);

@@ -6,6 +6,8 @@ export const CreateAgentSchema = z.object({
   name: z.string().min(1, 'validation.name.required').max(255),
   phone: z.string().max(50).optional(),
   email: z.string().email('validation.email.invalid').max(255).optional(),
+  state: z.string().min(1, 'validation.state.required').max(100),
+  city: z.string().min(1, 'validation.city.required').max(100),
 });
 
 export const UpdateAgentSchema = z
@@ -13,6 +15,8 @@ export const UpdateAgentSchema = z
     name: z.string().min(1, 'validation.name.required').max(255).optional(),
     phone: z.string().max(50).optional(),
     email: z.string().email('validation.email.invalid').max(255).optional(),
+    state: z.string().min(1, 'validation.state.required').max(100).optional(),
+    city: z.string().min(1, 'validation.city.required').max(100).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'validation.atLeastOneField',

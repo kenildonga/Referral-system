@@ -34,6 +34,17 @@ export const hiMessages: MessageTree = {
     deletedSuccess: 'एजेंट सफलतापूर्वक हटाया गया',
     loginIdGenerationFailed: 'अद्वितीय एजेंट लॉगिन आईडी बनाने में विफल',
   },
+  user: {
+    notFound: 'आईडी {{id}} वाला उपयोगकर्ता नहीं मिला',
+    agentNotFound: 'आईडी {{id}} वाला एजेंट नहीं मिला',
+    agentInactive: 'चयनित एजेंट सक्रिय नहीं है',
+    agentLocationMismatch:
+      'चयनित एजेंट प्रदान किए गए राज्य और शहर से मेल नहीं खाता',
+  },
+  location: {
+    stateNotFound: 'आईडी {{id}} वाला राज्य नहीं मिला',
+    cityNotFound: 'आईडी {{id}} वाला शहर नहीं मिला',
+  },
   form: {
     notFound: 'फ़ॉर्म नहीं मिला',
     notPublished: 'यह फ़ॉर्म प्रतिक्रियाएँ स्वीकार नहीं कर रहा है',
@@ -62,6 +73,30 @@ export const hiMessages: MessageTree = {
     },
     name: {
       required: 'नाम आवश्यक है',
+    },
+    firstName: {
+      required: 'पहला नाम आवश्यक है',
+    },
+    lastName: {
+      required: 'अंतिम नाम आवश्यक है',
+    },
+    phoneNumber: {
+      invalid: 'फ़ोन नंबर बिना देश कोड के ठीक 10 अंकों का होना चाहिए',
+    },
+    agentId: {
+      invalid: 'अमान्य एजेंट आईडी',
+    },
+    state: {
+      required: 'राज्य आवश्यक है',
+    },
+    city: {
+      required: 'शहर आवश्यक है',
+    },
+    stateId: {
+      invalid: 'अमान्य राज्य आईडी',
+    },
+    cityId: {
+      invalid: 'अमान्य शहर आईडी',
     },
     title: {
       required: 'शीर्षक आवश्यक है',

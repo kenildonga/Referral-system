@@ -38,6 +38,12 @@ export class Agent {
   @Column({ type: 'timestamp', nullable: true })
   lastLogin: Date;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  state: string | null;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  city: string | null;
+
   @Column({ type: 'uuid' })
   createdById: string;
 

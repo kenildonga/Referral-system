@@ -30,9 +30,12 @@ export const hiMessages: MessageTree = {
   },
   agent: {
     emailExists: 'इस ईमेल वाला एजेंट पहले से मौजूद है',
+    phoneNumberExists: 'इस फ़ोन नंबर वाला एजेंट पहले से मौजूद है',
     notFound: 'आईडी {{id}} वाला एजेंट नहीं मिला',
     deletedSuccess: 'एजेंट सफलतापूर्वक हटाया गया',
     loginIdGenerationFailed: 'अद्वितीय एजेंट लॉगिन आईडी बनाने में विफल',
+    signUpSuccess: 'एजेंट सफलतापूर्वक पंजीकृत हो गया',
+    profileUpdatedSuccess: 'प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई',
   },
   user: {
     notFound: 'आईडी {{id}} वाला उपयोगकर्ता नहीं मिला',
@@ -76,9 +79,11 @@ export const hiMessages: MessageTree = {
     },
     firstName: {
       required: 'पहला नाम आवश्यक है',
+      maxLength: 'पहला नाम अधिकतम 255 अक्षरों का हो सकता है',
     },
     lastName: {
       required: 'अंतिम नाम आवश्यक है',
+      maxLength: 'अंतिम नाम अधिकतम 255 अक्षरों का हो सकता है',
     },
     phoneNumber: {
       invalid: 'फ़ोन नंबर बिना देश कोड के ठीक 10 अंकों का होना चाहिए',
@@ -125,6 +130,7 @@ export const hiMessages: MessageTree = {
     },
     email: {
       invalid: 'अमान्य ईमेल पता',
+      required: 'ईमेल आवश्यक है',
     },
     currentPassword: {
       required: 'वर्तमान पासवर्ड आवश्यक है',

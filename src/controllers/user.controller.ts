@@ -20,7 +20,6 @@ import {
 import { AgentGuard } from '../common/guards/jwt-agent-auth.guard';
 
 @ApiTags('users')
-@UseGuards(AgentGuard)
 @ApiBearerAuth()
 @Controller('users')
 export class UserController {

@@ -26,9 +26,12 @@ export const enMessages = {
   },
   agent: {
     emailExists: 'Agent with this email already exists',
+    phoneNumberExists: 'Agent with this phone number already exists',
     notFound: 'Agent with ID {{id}} not found',
     deletedSuccess: 'Agent deleted successfully',
     loginIdGenerationFailed: 'Failed to generate unique agent login ID',
+    signUpSuccess: 'Agent registered successfully',
+    profileUpdatedSuccess: 'Profile updated successfully',
   },
   user: {
     notFound: 'User with ID {{id}} not found',
@@ -72,9 +75,11 @@ export const enMessages = {
     },
     firstName: {
       required: 'First name is required',
+      maxLength: 'First name must be at most 255 characters',
     },
     lastName: {
       required: 'Last name is required',
+      maxLength: 'Last name must be at most 255 characters',
     },
     phoneNumber: {
       invalid: 'Phone number must be exactly 10 digits with no country code',
@@ -121,6 +126,7 @@ export const enMessages = {
     },
     email: {
       invalid: 'Invalid email address',
+      required: 'Email is required',
     },
     currentPassword: {
       required: 'Current password is required',

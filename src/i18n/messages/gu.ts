@@ -30,9 +30,12 @@ export const guMessages: MessageTree = {
   },
   agent: {
     emailExists: 'આ ઇમેઇલ સાથેનો એજન્ટ પહેલેથી અસ્તિત્વમાં છે',
+    phoneNumberExists: 'આ ફોન નંબર સાથેનો એજન્ટ પહેલેથી અસ્તિત્વમાં છે',
     notFound: 'આઈડી {{id}} સાથેનો એજન્ટ મળ્યો નથી',
     deletedSuccess: 'એજન્ટ સફળતાપૂર્વક કાઢી નાખ્યો',
     loginIdGenerationFailed: 'અનન્ય એજન્ટ લૉગિન આઈડી બનાવવામાં નિષ્ફળ',
+    signUpSuccess: 'એજન્ટ સફળતાપૂર્વક નોંધાયો',
+    profileUpdatedSuccess: 'પ્રોફાઇલ સફળતાપૂર્વક અપડેટ થઈ',
   },
   user: {
     notFound: 'આઈડી {{id}} સાથેનો વપરાશકર્તા મળ્યો નથી',
@@ -76,9 +79,11 @@ export const guMessages: MessageTree = {
     },
     firstName: {
       required: 'પ્રથમ નામ જરૂરી છે',
+      maxLength: 'પ્રથમ નામ વધુમાં વધુ 255 અક્ષરોનું હોઈ શકે છે',
     },
     lastName: {
       required: 'છેલ્લું નામ જરૂરી છે',
+      maxLength: 'છેલ્લું નામ વધુમાં વધુ 255 અક્ષરોનું હોઈ શકે છે',
     },
     phoneNumber: {
       invalid: 'ફોન નંબર દેશ કોડ વગર ચોક્કસ 10 અંકનો હોવો જોઈએ',
@@ -125,6 +130,7 @@ export const guMessages: MessageTree = {
     },
     email: {
       invalid: 'અમાન્ય ઇમેઇલ સરનામું',
+      required: 'ઇમેઇલ જરૂરી છે',
     },
     currentPassword: {
       required: 'વર્તમાન પાસવર્ડ જરૂરી છે',

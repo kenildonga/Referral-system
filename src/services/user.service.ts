@@ -89,9 +89,10 @@ export class UserService {
       },
       select: {
         id: true,
-        name: true,
+        firstName: true,
+        lastName: true,
       },
-      order: { name: 'ASC' },
+      order: { firstName: 'ASC', lastName: 'ASC' },
     });
   }
 

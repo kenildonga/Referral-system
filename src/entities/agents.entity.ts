@@ -21,7 +21,10 @@ export class Agent {
   password: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name: string;
+  firstName: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  lastName: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   phoneNumber: string;

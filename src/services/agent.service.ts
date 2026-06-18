@@ -25,7 +25,8 @@ type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
   id: true,
   agentLoginId: true,
-  name: true,
+  firstName: true,
+  lastName: true,
   phoneNumber: true,
   email: true,
   isActive: true,
@@ -114,12 +115,20 @@ export class AgentService {
       throw new ConflictException('agent.emailExists');
     }
 
+    const existingPhoneNumber = await this.agentRepository.findOne({
+      where: { phoneNumber: signUpAgentDto.phoneNumber },
+    });
+    if (existingPhoneNumber) {
+      throw new ConflictException('agent.phoneNumberExists');
+    }
+
     const agentLoginId = await this.generateUniqueAgentLoginId();
 
     const agent = this.agentRepository.create({
       agentLoginId,
       password: await this.hashPassword(signUpAgentDto.password),
-      name: signUpAgentDto.name,
+      firstName: signUpAgentDto.firstName,
+      lastName: signUpAgentDto.lastName,
       phoneNumber: signUpAgentDto.phoneNumber,
       email: signUpAgentDto.email,
       state: signUpAgentDto.state,
@@ -166,13 +175,23 @@ export class AgentService {
       }
     }
 
+    if (createAgentDto.phoneNumber) {
+      const existingPhoneNumber = await this.agentRepository.findOne({
+        where: { phoneNumber: createAgentDto.phoneNumber },
+      });
+      if (existingPhoneNumber) {
+        throw new ConflictException('agent.phoneNumberExists');
+      }
+    }
+
     const plainPassword = this.generatePassword();
     const agentLoginId = await this.generateUniqueAgentLoginId();
 
     const agent = this.agentRepository.create({
       agentLoginId,
       password: await this.hashPassword(plainPassword),
-      name: createAgentDto.name,
+      firstName: createAgentDto.firstName,
+      lastName: createAgentDto.lastName,
       phoneNumber: createAgentDto.phoneNumber,
       email: createAgentDto.email,
       state: createAgentDto.state,
@@ -218,12 +237,25 @@ export class AgentService {
       agent.email = updateAgentDto.email;
     }
 
-    if (updateAgentDto.name !== undefined) {
-      agent.name = updateAgentDto.name;
+    if (
+      updateAgentDto.phoneNumber &&
+      updateAgentDto.phoneNumber !== agent.phoneNumber
+    ) {
+      const existing = await this.agentRepository.findOne({
+        where: { phoneNumber: updateAgentDto.phoneNumber },
+      });
+      if (existing) {
+        throw new ConflictException('agent.phoneNumberExists');
+      }
+      agent.phoneNumber = updateAgentDto.phoneNumber;
     }
 
-    if (updateAgentDto.phoneNumber !== undefined) {
-      agent.phoneNumber = updateAgentDto.phoneNumber;
+    if (updateAgentDto.firstName !== undefined) {
+      agent.firstName = updateAgentDto.firstName;
+    }
+
+    if (updateAgentDto.lastName !== undefined) {
+      agent.lastName = updateAgentDto.lastName;
     }
 
     if (updateAgentDto.state !== undefined) {

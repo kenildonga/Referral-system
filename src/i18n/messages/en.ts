@@ -78,6 +78,7 @@ export const enMessages = {
     },
     phoneNumber: {
       invalid: 'Phone number must be exactly 10 digits with no country code',
+      required: 'Phone number is required',
     },
     agentId: {
       invalid: 'Invalid agent ID',

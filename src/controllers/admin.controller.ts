@@ -21,9 +21,9 @@ import {
   ForgotPasswordDto,
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
-import { JwtAdminAuthGuard } from '../common/guards/jwt-admin-auth.guard';
+import { AdminGuard } from '../common/guards/jwt-admin-auth.guard';
+import { SuperAdminGuard } from '../common/guards/jwt-super-admin-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
-import { SuperAdmin } from '../common/decorators/super-admin.decorator';
 
 @ApiTags('admins')
 @Controller('admins')
@@ -32,37 +32,37 @@ export class AdminController {
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Admin login' })
+  @ApiOperation({ summary: 'Admin login (Admin and Super Admin)' })
   login(@Body() loginAdminDto: LoginAdminDto) {
     return this.adminService.login(loginAdminDto);
   }
 
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @ApiOperation({ summary: 'Request password reset OTP' })
+  @ApiOperation({ summary: 'Request password reset OTP (Admin and Super Admin)' })
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.adminService.forgotPassword(forgotPasswordDto.email);
   }
 
   @Post('reset-password')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Reset password with OTP' })
+  @ApiOperation({ summary: 'Reset password with OTP (Admin and Super Admin)' })
   resetPassword(@Body() resetPasswordOtpDto: ResetPasswordOtpDto) {
     return this.adminService.resetPasswordWithOtp(resetPasswordOtpDto);
   }
 
   @Post('logout')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(AdminGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Admin logout' })
+  @ApiOperation({ summary: 'Admin logout (Admin and Super Admin)' })
   logout(@Req() req: AuthenticatedRequest) {
     return this.adminService.logout(req.admin.id);
   }
 
   @Patch('me/password')
-  @UseGuards(JwtAdminAuthGuard)
+  @UseGuards(AdminGuard, SuperAdminGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Change own password' })
+  @ApiOperation({ summary: 'Change own password (Admin)' })
   changePassword(
     @Req() req: AuthenticatedRequest,
     @Body() changePasswordDto: ChangePasswordDto,
@@ -71,35 +71,40 @@ export class AdminController {
   }
 
   @Post()
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new admin (Super Admin)' })
   create(@Body() createAdminDto: CreateAdminDto) {
     return this.adminService.create(createAdminDto);
   }
 
   @Get()
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all admins (Super Admin)' })
   findAll(@Req() req: AuthenticatedRequest) {
     return this.adminService.findAll(req.admin.id);
   }
 
   @Get(':id')
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an admin by ID (Super Admin)' })
   findOne(@Param('id') id: string) {
     return this.adminService.findOne(id);
   }
 
   @Patch(':id')
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update admin details (Super Admin)' })
   update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
     return this.adminService.update(id, updateAdminDto);
   }
 
   @Patch(':id/reset-password')
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Reset admin password (Super Admin)' })
   resetAdminPassword(
     @Param('id') id: string,
@@ -109,7 +114,8 @@ export class AdminController {
   }
 
   @Patch(':id/status')
-  @SuperAdmin()
+  @UseGuards(SuperAdminGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update admin active status (Super Admin)' })
   updateStatus(
     @Param('id') id: string,

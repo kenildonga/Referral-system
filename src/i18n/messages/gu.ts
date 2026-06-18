@@ -82,6 +82,7 @@ export const guMessages: MessageTree = {
     },
     phoneNumber: {
       invalid: 'ફોન નંબર દેશ કોડ વગર ચોક્કસ 10 અંકનો હોવો જોઈએ',
+      required: 'ફોન નંબર જરૂરી છે',
     },
     agentId: {
       invalid: 'અમાન્ય એજન્ટ આઈડી',

@@ -14,7 +14,7 @@ import type {
 } from '../interfaces/auth.interface';
 
 @Injectable()
-export class JwtAdminAuthGuard implements CanActivate {
+export class AdminGuard implements CanActivate {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,

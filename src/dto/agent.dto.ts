@@ -4,7 +4,10 @@ import { passwordSchema } from './admin.dto';
 
 export const CreateAgentSchema = z.object({
   name: z.string().min(1, 'validation.name.required').max(255),
-  phone: z.string().max(50).optional(),
+  phoneNumber: z
+    .string()
+    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
+    .optional(),
   email: z.string().email('validation.email.invalid').max(255).optional(),
   state: z.string().min(1, 'validation.state.required').max(100),
   city: z.string().min(1, 'validation.city.required').max(100),
@@ -13,7 +16,10 @@ export const CreateAgentSchema = z.object({
 export const UpdateAgentSchema = z
   .object({
     name: z.string().min(1, 'validation.name.required').max(255).optional(),
-    phone: z.string().max(50).optional(),
+    phoneNumber: z
+      .string()
+      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
+      .optional(),
     email: z.string().email('validation.email.invalid').max(255).optional(),
     state: z.string().min(1, 'validation.state.required').max(100).optional(),
     city: z.string().min(1, 'validation.city.required').max(100).optional(),
@@ -36,6 +42,32 @@ export const ChangeAgentPasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
+export const SignUpAgentSchema = z.object({
+  name: z.string().min(1, 'validation.name.required').max(255),
+  phoneNumber: z
+    .string()
+    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  email: z.string().email('validation.email.invalid').max(255),
+  state: z.string().min(1, 'validation.state.required').max(100),
+  city: z.string().min(1, 'validation.city.required').max(100),
+  password: passwordSchema,
+});
+
+export const UpdateAgentProfileSchema = z
+  .object({
+    name: z.string().min(1, 'validation.name.required').max(255).optional(),
+    phoneNumber: z
+      .string()
+      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
+      .optional(),
+    email: z.string().email('validation.email.invalid').max(255).optional(),
+    state: z.string().min(1, 'validation.state.required').max(100).optional(),
+    city: z.string().min(1, 'validation.city.required').max(100).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'validation.atLeastOneField',
+  });
+
 export class CreateAgentDto extends createZodDto(CreateAgentSchema) {}
 export interface CreateAgentDto extends z.infer<typeof CreateAgentSchema> {}
 
@@ -57,4 +89,14 @@ export class ChangeAgentPasswordDto extends createZodDto(
 ) {}
 export interface ChangeAgentPasswordDto extends z.infer<
   typeof ChangeAgentPasswordSchema
+> {}
+
+export class SignUpAgentDto extends createZodDto(SignUpAgentSchema) {}
+export interface SignUpAgentDto extends z.infer<typeof SignUpAgentSchema> {}
+
+export class UpdateAgentProfileDto extends createZodDto(
+  UpdateAgentProfileSchema,
+) {}
+export interface UpdateAgentProfileDto extends z.infer<
+  typeof UpdateAgentProfileSchema
 > {}

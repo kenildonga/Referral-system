@@ -24,7 +24,7 @@ export class Agent {
   name: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  phone: string;
+  phoneNumber: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   email: string;
@@ -44,12 +44,12 @@ export class Agent {
   @Column({ type: 'varchar', length: 100, nullable: true })
   city: string | null;
 
-  @Column({ type: 'uuid' })
-  createdById: string;
+  @Column({ type: 'uuid', nullable: true })
+  createdById: string | null;
 
-  @ManyToOne(() => Admin)
+  @ManyToOne(() => Admin, { nullable: true })
   @JoinColumn({ name: 'createdById' })
-  createdBy: Admin;
+  createdBy: Admin | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

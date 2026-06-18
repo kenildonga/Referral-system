@@ -7,8 +7,9 @@ import {
   Body,
   Param,
   Req,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AgentService } from '../services/agent.service';
 import {
@@ -17,34 +18,50 @@ import {
   UpdateAgentStatusDto,
   LoginAgentDto,
   ChangeAgentPasswordDto,
+  SignUpAgentDto,
+  UpdateAgentProfileDto,
 } from '../dto/agent.dto';
-import { AdminAuth } from '../common/decorators/admin-auth.decorator';
-import { AgentAuth } from '../common/decorators/agent-auth.decorator';
+import { AdminGuard } from '../common/guards/jwt-admin-auth.guard';
+import { AgentGuard } from '../common/guards/jwt-agent-auth.guard';
+import { SuperAdminGuard } from '../common/guards/jwt-super-admin-auth.guard';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
 
 @ApiTags('agents')
 @Controller('agents')
 export class AgentController {
-  constructor(private readonly agentService: AgentService) {}
+  constructor(private readonly agentService: AgentService) { }
+
+  //////////////////////////////////////////////////////////////////////
+  //                            Agent Apis                            //
+  //////////////////////////////////////////////////////////////////////
 
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } })
-  @ApiOperation({ summary: 'Agent login' })
+  @ApiOperation({ summary: 'Agent login (Agent)' })
   login(@Body() loginAgentDto: LoginAgentDto) {
     return this.agentService.login(loginAgentDto);
   }
 
+  @Post('sign-up')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Agent sign up (Agent)' })
+  signUp(@Body() signUpAgentDto: SignUpAgentDto) {
+    return this.agentService.signUp(signUpAgentDto);
+  }
+
   @Post('logout')
-  @AgentAuth()
-  @ApiOperation({ summary: 'Agent logout' })
+  @UseGuards(AgentGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Agent logout (Agent)' })
   logout(@Req() req: AgentAuthenticatedRequest) {
     return this.agentService.logout(req.agent.id);
   }
 
-  @Patch('me/password')
-  @AgentAuth()
-  @ApiOperation({ summary: 'Change own password' })
+  @Patch('me/change-password')
+  @UseGuards(AgentGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change own password (Agent)' })
   changePassword(
     @Req() req: AgentAuthenticatedRequest,
     @Body() changeAgentPasswordDto: ChangeAgentPasswordDto,
@@ -55,9 +72,33 @@ export class AgentController {
     );
   }
 
+  @Get('me/profile')
+  @UseGuards(AgentGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get own profile (Agent)' })
+  getProfile(@Req() req: AgentAuthenticatedRequest) {
+    return this.agentService.getProfile(req.agent.id);
+  }
+
+  @Patch('me/profile')
+  @UseGuards(AgentGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update own profile (Agent)' })
+  updateProfile(
+    @Req() req: AgentAuthenticatedRequest,
+    @Body() updateAgentProfileDto: UpdateAgentProfileDto,
+  ) {
+    return this.agentService.updateProfile(req.agent.id, updateAgentProfileDto);
+  }
+
+  //////////////////////////////////////////////////////////////////////
+  //                            Admin Apis                            //
+  //////////////////////////////////////////////////////////////////////
+
   @Post()
-  @AdminAuth()
-  @ApiOperation({ summary: 'Create a new agent' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a new agent (Admin and Super Admin)' })
   create(
     @Req() req: AuthenticatedRequest,
     @Body() createAgentDto: CreateAgentDto,
@@ -66,36 +107,41 @@ export class AgentController {
   }
 
   @Get()
-  @AdminAuth()
-  @ApiOperation({ summary: 'Get all agents' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get all agents (Admin and Super Admin)' })
   findAll() {
     return this.agentService.findAll();
   }
 
   @Get(':id')
-  @AdminAuth()
-  @ApiOperation({ summary: 'Get an agent by ID' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get an agent by ID (Admin and Super Admin)' })
   findOne(@Param('id') id: string) {
     return this.agentService.findOne(id);
   }
 
   @Patch(':id')
-  @AdminAuth()
-  @ApiOperation({ summary: 'Update agent details' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update agent details (Admin and Super Admin)' })
   update(@Param('id') id: string, @Body() updateAgentDto: UpdateAgentDto) {
     return this.agentService.update(id, updateAgentDto);
   }
 
   @Delete(':id')
-  @AdminAuth()
-  @ApiOperation({ summary: 'Delete an agent' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete an agent (Admin and Super Admin)' })
   remove(@Param('id') id: string) {
     return this.agentService.remove(id);
   }
 
   @Patch(':id/status')
-  @AdminAuth()
-  @ApiOperation({ summary: 'Update agent active status' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update agent active status (Admin and Super Admin)' })
   updateStatus(
     @Param('id') id: string,
     @Body() updateAgentStatusDto: UpdateAgentStatusDto,
@@ -104,8 +150,9 @@ export class AgentController {
   }
 
   @Patch(':id/reset-password')
-  @AdminAuth()
-  @ApiOperation({ summary: 'Reset agent password' })
+  @UseGuards(AdminGuard, SuperAdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reset agent password (Admin and Super Admin)' })
   resetPassword(@Param('id') id: string) {
     return this.agentService.resetPassword(id);
   }

@@ -15,6 +15,8 @@ import {
   UpdateAgentStatusDto,
   LoginAgentDto,
   ChangeAgentPasswordDto,
+  SignUpAgentDto,
+  UpdateAgentProfileDto,
 } from '../dto/agent.dto';
 import { I18nService } from '../i18n/i18n.service';
 
@@ -24,7 +26,7 @@ const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
   id: true,
   agentLoginId: true,
   name: true,
-  phone: true,
+  phoneNumber: true,
   email: true,
   isActive: true,
   state: true,
@@ -102,6 +104,50 @@ export class AgentService {
     return { message: this.i18n.t('auth.passwordChangedSuccess') };
   }
 
+  async signUp(
+    signUpAgentDto: SignUpAgentDto,
+  ): Promise<{ accessToken: string; agent: SafeAgent }> {
+    const existingEmail = await this.agentRepository.findOne({
+      where: { email: signUpAgentDto.email },
+    });
+    if (existingEmail) {
+      throw new ConflictException('agent.emailExists');
+    }
+
+    const agentLoginId = await this.generateUniqueAgentLoginId();
+
+    const agent = this.agentRepository.create({
+      agentLoginId,
+      password: await this.hashPassword(signUpAgentDto.password),
+      name: signUpAgentDto.name,
+      phoneNumber: signUpAgentDto.phoneNumber,
+      email: signUpAgentDto.email,
+      state: signUpAgentDto.state,
+      city: signUpAgentDto.city,
+      isActive: true,
+      tokenVersion: 0,
+      createdById: null,
+    });
+
+    const saved = await this.agentRepository.save(agent);
+    const accessToken = this.signToken(saved);
+    saved.lastLogin = new Date();
+    await this.agentRepository.save(saved);
+
+    return { accessToken, agent: this.toSafeAgent(saved) };
+  }
+
+  async getProfile(agentId: string): Promise<SafeAgent> {
+    return this.findOne(agentId);
+  }
+
+  async updateProfile(
+    agentId: string,
+    updateAgentProfileDto: UpdateAgentProfileDto,
+  ): Promise<SafeAgent> {
+    return this.update(agentId, updateAgentProfileDto);
+  }
+
   // --- Admin Management ---
 
   async create(
@@ -127,7 +173,7 @@ export class AgentService {
       agentLoginId,
       password: await this.hashPassword(plainPassword),
       name: createAgentDto.name,
-      phone: createAgentDto.phone,
+      phoneNumber: createAgentDto.phoneNumber,
       email: createAgentDto.email,
       state: createAgentDto.state,
       city: createAgentDto.city,
@@ -176,8 +222,8 @@ export class AgentService {
       agent.name = updateAgentDto.name;
     }
 
-    if (updateAgentDto.phone !== undefined) {
-      agent.phone = updateAgentDto.phone;
+    if (updateAgentDto.phoneNumber !== undefined) {
+      agent.phoneNumber = updateAgentDto.phoneNumber;
     }
 
     if (updateAgentDto.state !== undefined) {

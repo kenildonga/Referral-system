@@ -7,8 +7,9 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { UserService } from '../services/user.service';
 import {
@@ -16,8 +17,11 @@ import {
   UpdateUserAgentDto,
   ListAgentsQueryDto,
 } from '../dto/user.dto';
+import { AgentGuard } from '../common/guards/jwt-agent-auth.guard';
 
 @ApiTags('users')
+@UseGuards(AgentGuard)
+@ApiBearerAuth()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}

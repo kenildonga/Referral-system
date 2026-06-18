@@ -82,6 +82,7 @@ export const hiMessages: MessageTree = {
     },
     phoneNumber: {
       invalid: 'फ़ोन नंबर बिना देश कोड के ठीक 10 अंकों का होना चाहिए',
+      required: 'फ़ोन नंबर आवश्यक है',
     },
     agentId: {
       invalid: 'अमान्य एजेंट आईडी',

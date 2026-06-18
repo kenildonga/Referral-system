@@ -14,7 +14,7 @@ import type {
 } from '../interfaces/agent-auth.interface';
 
 @Injectable()
-export class JwtAgentAuthGuard implements CanActivate {
+export class AgentGuard implements CanActivate {
   constructor(
     @InjectRepository(Agent)
     private readonly agentRepository: Repository<Agent>,

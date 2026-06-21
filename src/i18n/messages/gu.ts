@@ -9,6 +9,7 @@ export const guMessages: MessageTree = {
     invalidOrExpiredToken: 'અમાન્ય અથવા સમાપ્ત ટોકન',
     invalidEmailOrPassword: 'અમાન્ય ઇમેઇલ અથવા પાસવર્ડ',
     invalidAgentLoginIdOrPassword: 'અમાન્ય એજન્ટ લૉગિન આઈડી અથવા પાસવર્ડ',
+    invalidUserPhoneNumberOrPassword: 'અમાન્ય ફોન નંબર અથવા પાસવર્ડ',
     currentPasswordIncorrect: 'વર્તમાન પાસવર્ડ ખોટો છે',
     notAuthorized: 'તમે આ ક્રિયા કરવા માટે અધિકૃત નથી',
     logoutSuccess: 'સફળતાપૂર્વક લૉગ આઉટ થયા',

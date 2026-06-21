@@ -10,6 +10,7 @@ export const hiMessages: MessageTree = {
     invalidOrExpiredToken: 'अमान्य या समाप्त टोकन',
     invalidEmailOrPassword: 'अमान्य ईमेल या पासवर्ड',
     invalidAgentLoginIdOrPassword: 'अमान्य एजेंट लॉगिन आईडी या पासवर्ड',
+    invalidUserPhoneNumberOrPassword: 'अमान्य फ़ोन नंबर या पासवर्ड',
     currentPasswordIncorrect: 'वर्तमान पासवर्ड गलत है',
     notAuthorized: 'आप यह कार्य करने के लिए अधिकृत नहीं हैं',
     logoutSuccess: 'सफलतापूर्वक लॉग आउट हो गया',

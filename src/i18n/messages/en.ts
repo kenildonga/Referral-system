@@ -7,6 +7,7 @@ export const enMessages = {
     invalidOrExpiredToken: 'Invalid or expired token',
     invalidEmailOrPassword: 'Invalid email or password',
     invalidAgentLoginIdOrPassword: 'Invalid agent login ID or password',
+    invalidUserPhoneNumberOrPassword: 'Invalid phone number or password',
     currentPasswordIncorrect: 'Current password is incorrect',
     notAuthorized: 'You are not authorized to perform this action',
     logoutSuccess: 'Logged out successfully',

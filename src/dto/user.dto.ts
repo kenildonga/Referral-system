@@ -26,6 +26,13 @@ export const ListAgentsQuerySchema = z.object({
   cityId: z.coerce.number().int().positive('validation.cityId.invalid'),
 });
 
+export const LoginUserSchema = z.object({
+  phoneNumber: z
+    .string()
+    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  password: z.string().min(1, 'validation.password.required'),
+});
+
 export const UpdateUserSchema = z
   .object({
     firstName: z.string().min(1, 'validation.firstName.required').max(255),
@@ -53,6 +60,9 @@ export class ListAgentsQueryDto extends createZodDto(ListAgentsQuerySchema) {}
 export interface ListAgentsQueryDto extends z.infer<
   typeof ListAgentsQuerySchema
 > {}
+
+export class LoginUserDto extends createZodDto(LoginUserSchema) {}
+export interface LoginUserDto extends z.infer<typeof LoginUserSchema> {}
 
 export class UpdateUserDto extends createZodDto(UpdateUserSchema) {}
 export interface UpdateUserDto extends z.infer<typeof UpdateUserSchema> {}

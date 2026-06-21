@@ -36,6 +36,9 @@ export class User {
   @Column({ type: 'varchar', length: 255, nullable: true, default: null })
   password: string | null;
 
+  @Column({ type: 'int', default: 0 })
+  tokenVersion: number;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

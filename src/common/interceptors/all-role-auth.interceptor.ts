@@ -11,10 +11,11 @@ import {
 import { Observable } from 'rxjs';
 import { AdminGuard } from '../guards/jwt-admin-auth.guard';
 import { AgentGuard } from '../guards/jwt-agent-auth.guard';
+import { UserGuard } from '../guards/jwt-user-auth.guard';
 import type { AuthenticatedRequest } from '../interfaces/auth.interface';
 
-export type AuthRolePreset = 'superAdmin' | 'admin' | 'agent' | 'all';
-type AuthRole = 'superAdmin' | 'admin' | 'agent';
+export type AuthRolePreset = 'superAdmin' | 'admin' | 'agent' | 'user' | 'all';
+type AuthRole = 'superAdmin' | 'admin' | 'agent' | 'user';
 
 function resolveAllowedRoles(presets: AuthRolePreset[]): Set<AuthRole> {
   const allowed = new Set<AuthRole>();
@@ -31,8 +32,12 @@ function resolveAllowedRoles(presets: AuthRolePreset[]): Set<AuthRole> {
       case 'agent':
         allowed.add('agent');
         break;
+      case 'user':
+        allowed.add('user');
+        break;
       case 'all':
         allowed.add('agent');
+        allowed.add('user');
         allowed.add('admin');
         allowed.add('superAdmin');
         break;
@@ -47,6 +52,7 @@ export function AllRoleAuthInterceptor(
 ): Type<NestInterceptor> {
   const allowed = resolveAllowedRoles(roles);
   const needsAgentAuth = allowed.has('agent');
+  const needsUserAuth = allowed.has('user');
   const needsAdminAuth =
     allowed.has('admin') || allowed.has('superAdmin');
 
@@ -55,6 +61,7 @@ export function AllRoleAuthInterceptor(
     constructor(
       private readonly adminGuard: AdminGuard,
       private readonly agentGuard: AgentGuard,
+      private readonly userGuard: UserGuard,
     ) {}
 
     async intercept(
@@ -71,33 +78,51 @@ export function AllRoleAuthInterceptor(
     private async authenticate(
       context: ExecutionContext,
     ): Promise<AuthRole> {
-      if (needsAgentAuth && needsAdminAuth) {
-        try {
+      const authAttempts: Array<() => Promise<AuthRole>> = [];
+
+      if (needsAdminAuth) {
+        authAttempts.push(async () => {
           await this.adminGuard.canActivate(context);
           const request = context
             .switchToHttp()
             .getRequest<AuthenticatedRequest>();
           return request.admin.role as AuthRole;
-        } catch (error) {
-          if (!(error instanceof UnauthorizedException)) {
-            throw error;
-          }
-        }
-
-        await this.agentGuard.canActivate(context);
-        return 'agent';
+        });
       }
 
       if (needsAgentAuth) {
-        await this.agentGuard.canActivate(context);
-        return 'agent';
+        authAttempts.push(async () => {
+          await this.agentGuard.canActivate(context);
+          return 'agent';
+        });
       }
 
-      await this.adminGuard.canActivate(context);
-      const request = context
-        .switchToHttp()
-        .getRequest<AuthenticatedRequest>();
-      return request.admin.role as AuthRole;
+      if (needsUserAuth) {
+        authAttempts.push(async () => {
+          await this.userGuard.canActivate(context);
+          return 'user';
+        });
+      }
+
+      let lastUnauthorizedError: UnauthorizedException | null = null;
+
+      for (const attempt of authAttempts) {
+        try {
+          return await attempt();
+        } catch (error) {
+          if (error instanceof UnauthorizedException) {
+            lastUnauthorizedError = error;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (lastUnauthorizedError) {
+        throw lastUnauthorizedError;
+      }
+
+      throw new UnauthorizedException('auth.invalidOrExpiredToken');
     }
   }
 

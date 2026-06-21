@@ -6,6 +6,8 @@ import {
   Body,
   Param,
   Query,
+  Req,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -14,13 +16,31 @@ import {
   FillUserFormDto,
   UpdateUserAgentDto,
   ListAgentsQueryDto,
+  LoginUserDto,
 } from '../dto/user.dto';
+import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
+import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
 
 @ApiTags('users')
 @ApiBearerAuth()
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'User login (User)' })
+  login(@Body() loginUserDto: LoginUserDto) {
+    return this.userService.login(loginUserDto);
+  }
+
+  @Post('logout')
+  @UseInterceptors(AllRoleAuthInterceptor(['user']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'User logout (User)' })
+  logout(@Req() req: UserAuthenticatedRequest) {
+    return this.userService.logout(req.user.id);
+  }
 
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60000 } })

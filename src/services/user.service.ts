@@ -2,10 +2,12 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import * as jwt from 'jsonwebtoken';
 import { User } from '../entities/users.entity';
 import { Agent } from '../entities/agents.entity';
 import { State } from '../entities/states.entity';
@@ -14,10 +16,11 @@ import {
   FillUserFormDto,
   UpdateUserAgentDto,
   ListAgentsQueryDto,
+  LoginUserDto,
 } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
 
-type SafeUser = Omit<User, 'agent' | 'password'>;
+type SafeUser = Omit<User, 'agent' | 'password' | 'tokenVersion'>;
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 
@@ -47,6 +50,34 @@ export class UserService {
 
     const saved = await this.userRepository.save(user);
     return this.toSafeUser(saved);
+  }
+
+  async login(
+    loginUserDto: LoginUserDto,
+  ): Promise<{ accessToken: string; user: SafeUser }> {
+    const user = await this.userRepository.findOne({
+      where: { phoneNumber: loginUserDto.phoneNumber },
+    });
+
+    if (!user || !user.password) {
+      throw new UnauthorizedException('auth.invalidUserPhoneNumberOrPassword');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      loginUserDto.password,
+      user.password,
+    );
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('auth.invalidUserPhoneNumberOrPassword');
+    }
+
+    const accessToken = this.signToken(user);
+    return { accessToken, user: this.toSafeUser(user) };
+  }
+
+  async logout(userId: string): Promise<{ message: string }> {
+    await this.incrementTokenVersion(userId);
+    return { message: this.i18n.t('auth.logoutSuccess') };
   }
 
   async findAgentsByLocation(
@@ -132,12 +163,32 @@ export class UserService {
   }
 
   private toSafeUser(user: User): SafeUser {
-    const { agent, password, ...safeUser } = user;
+    const { agent, password, tokenVersion, ...safeUser } = user;
     return safeUser;
   }
 
   private async hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(password, salt);
+  }
+
+  private signToken(user: User): string {
+    const jwtSecret = process.env.JWT_SECRET || 'dev-secret-key-change-me';
+    const expiresIn = process.env.JWT_EXPIRES_IN || '1d';
+
+    return jwt.sign(
+      { id: user.id, type: 'user', tokenVersion: user.tokenVersion },
+      jwtSecret,
+      { expiresIn } as jwt.SignOptions,
+    );
+  }
+
+  private async incrementTokenVersion(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('auth.invalidOrExpiredToken');
+    }
+    user.tokenVersion += 1;
+    await this.userRepository.save(user);
   }
 }

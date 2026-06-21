@@ -5,7 +5,7 @@ import {
   Patch,
   Body,
   Param,
-  UseGuards,
+  UseInterceptors,
   Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -21,8 +21,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
-import { AdminGuard } from '../common/guards/jwt-admin-auth.guard';
-import { SuperAdminGuard } from '../common/guards/jwt-super-admin-auth.guard';
+import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 
 @ApiTags('admins')
@@ -52,7 +51,7 @@ export class AdminController {
   }
 
   @Post('logout')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Admin logout (Admin and Super Admin)' })
   logout(@Req() req: AuthenticatedRequest) {
@@ -60,7 +59,7 @@ export class AdminController {
   }
 
   @Patch('me/password')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change own password (Admin)' })
   changePassword(
@@ -71,7 +70,7 @@ export class AdminController {
   }
 
   @Post()
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new admin (Super Admin)' })
   create(@Body() createAdminDto: CreateAdminDto) {
@@ -79,7 +78,7 @@ export class AdminController {
   }
 
   @Get()
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all admins (Super Admin)' })
   findAll(@Req() req: AuthenticatedRequest) {
@@ -87,7 +86,7 @@ export class AdminController {
   }
 
   @Get(':id')
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an admin by ID (Super Admin)' })
   findOne(@Param('id') id: string) {
@@ -95,7 +94,7 @@ export class AdminController {
   }
 
   @Patch(':id')
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update admin details (Super Admin)' })
   update(@Param('id') id: string, @Body() updateAdminDto: UpdateAdminDto) {
@@ -103,7 +102,7 @@ export class AdminController {
   }
 
   @Patch(':id/reset-password')
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reset admin password (Super Admin)' })
   resetAdminPassword(
@@ -114,7 +113,7 @@ export class AdminController {
   }
 
   @Patch(':id/status')
-  @UseGuards(SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update admin active status (Super Admin)' })
   updateStatus(

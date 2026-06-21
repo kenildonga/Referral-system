@@ -7,7 +7,7 @@ import {
   Body,
   Param,
   Req,
-  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -21,9 +21,7 @@ import {
   SignUpAgentDto,
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
-import { AdminGuard } from '../common/guards/jwt-admin-auth.guard';
-import { AgentGuard } from '../common/guards/jwt-agent-auth.guard';
-import { SuperAdminGuard } from '../common/guards/jwt-super-admin-auth.guard';
+import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
 
@@ -51,7 +49,7 @@ export class AgentController {
   }
 
   @Post('logout')
-  @UseGuards(AgentGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Agent logout (Agent)' })
   logout(@Req() req: AgentAuthenticatedRequest) {
@@ -59,7 +57,7 @@ export class AgentController {
   }
 
   @Patch('me/change-password')
-  @UseGuards(AgentGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change own password (Agent)' })
   changePassword(
@@ -73,7 +71,7 @@ export class AgentController {
   }
 
   @Get('me/profile')
-  @UseGuards(AgentGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get own profile (Agent)' })
   getProfile(@Req() req: AgentAuthenticatedRequest) {
@@ -81,7 +79,7 @@ export class AgentController {
   }
 
   @Patch('me/profile')
-  @UseGuards(AgentGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update own profile (Agent)' })
   updateProfile(
@@ -96,7 +94,7 @@ export class AgentController {
   //////////////////////////////////////////////////////////////////////
 
   @Post()
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Create a new agent (Admin and Super Admin)' })
   create(
@@ -107,7 +105,7 @@ export class AgentController {
   }
 
   @Get()
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all agents (Admin and Super Admin)' })
   findAll() {
@@ -115,7 +113,7 @@ export class AgentController {
   }
 
   @Get(':id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get an agent by ID (Admin and Super Admin)' })
   findOne(@Param('id') id: string) {
@@ -123,7 +121,7 @@ export class AgentController {
   }
 
   @Patch(':id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update agent details (Admin and Super Admin)' })
   update(@Param('id') id: string, @Body() updateAgentDto: UpdateAgentDto) {
@@ -131,7 +129,7 @@ export class AgentController {
   }
 
   @Delete(':id')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete an agent (Admin and Super Admin)' })
   remove(@Param('id') id: string) {
@@ -139,7 +137,7 @@ export class AgentController {
   }
 
   @Patch(':id/status')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update agent active status (Admin and Super Admin)' })
   updateStatus(
@@ -150,7 +148,7 @@ export class AgentController {
   }
 
   @Patch(':id/reset-password')
-  @UseGuards(AdminGuard, SuperAdminGuard)
+  @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reset agent password (Admin and Super Admin)' })
   resetPassword(@Param('id') id: string) {

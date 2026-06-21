@@ -7,23 +7,10 @@ import { OtpService } from './helpers/otp.service';
 import { S3Service } from './helpers/s3.service';
 import { AdminGuard } from './guards/jwt-admin-auth.guard';
 import { AgentGuard } from './guards/jwt-agent-auth.guard';
-import { SuperAdminGuard } from './guards/jwt-super-admin-auth.guard';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PasswordResetOtp, Admin, Agent])],
-  providers: [
-    OtpService,
-    S3Service,
-    AdminGuard,
-    AgentGuard,
-    SuperAdminGuard,
-  ],
-  exports: [
-    OtpService,
-    S3Service,
-    AdminGuard,
-    AgentGuard,
-    SuperAdminGuard,
-  ],
+  providers: [OtpService, S3Service, AdminGuard, AgentGuard],
+  exports: [OtpService, S3Service, AdminGuard, AgentGuard],
 })
 export class CommonModule {}

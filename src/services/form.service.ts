@@ -30,6 +30,9 @@ export class FormService {
 
   private async findFormOrFail(id: string): Promise<Form> {
     const form = await this.formRepository.findOne({ where: { id } });
+
+
+
     if (!form) {
       throw new NotFoundException('form.notFound');
     }
@@ -103,7 +106,9 @@ export class FormService {
     formId: string,
     dto: SubmitResponseDto,
   ): Promise<FormResponse> {
+    
     const form = await this.findFormOrFail(formId);
+
     if (!form.isPublished) {
       throw new BadRequestException('form.notPublished');
     }

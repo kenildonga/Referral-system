@@ -23,7 +23,7 @@ import { UpdateUserDto } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
-type SafeUser = Omit<User, 'agent'>;
+type SafeUser = Omit<User, 'agent' | 'password'>;
 
 const SAFE_USER_SELECT: FindOptionsSelect<User> = {
   id: true,
@@ -228,6 +228,10 @@ export class AgentService {
         throw new ConflictException('user.emailExists');
       }
       user.email = updateUserDto.email;
+    }
+
+    if (updateUserDto.password !== undefined) {
+      user.password = await this.hashPassword(updateUserDto.password);
     }
 
     const saved = await this.userRepository.save(user);
@@ -496,7 +500,7 @@ export class AgentService {
   }
 
   private toSafeUser(user: User): SafeUser {
-    const { agent, ...safeUser } = user;
+    const { agent, password, ...safeUser } = user;
     return safeUser;
   }
 }

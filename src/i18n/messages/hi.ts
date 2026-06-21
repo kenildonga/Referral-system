@@ -73,6 +73,7 @@ export const hiMessages: MessageTree = {
   validation: {
     password: {
       minLength: 'पासवर्ड कम से कम 8 अक्षरों का होना चाहिए',
+      maxLength: 'पासवर्ड अधिकतम 255 अक्षरों का होना चाहिए',
       requireLetter: 'पासवर्ड में कम से कम एक अक्षर होना चाहिए',
       requireNumber: 'पासवर्ड में कम से कम एक संख्या होनी चाहिए',
       required: 'पासवर्ड आवश्यक है',

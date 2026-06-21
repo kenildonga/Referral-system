@@ -69,6 +69,7 @@ export const enMessages = {
   validation: {
     password: {
       minLength: 'Password must be at least 8 characters',
+      maxLength: 'Password must be at most 255 characters',
       requireLetter: 'Password must contain at least one letter',
       requireNumber: 'Password must contain at least one number',
       required: 'Password is required',

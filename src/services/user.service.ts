@@ -4,7 +4,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsSelect } from 'typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User } from '../entities/users.entity';
 import { Agent } from '../entities/agents.entity';
 import { State } from '../entities/states.entity';
@@ -16,7 +17,7 @@ import {
 } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
 
-type SafeUser = Omit<User, 'agent'>;
+type SafeUser = Omit<User, 'agent' | 'password'>;
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 
@@ -40,6 +41,7 @@ export class UserService {
       lastName: dto.lastName,
       phoneNumber: dto.phoneNumber,
       email: dto.email,
+      password: await this.hashPassword(dto.password),
       agentId: null,
     });
 
@@ -130,7 +132,12 @@ export class UserService {
   }
 
   private toSafeUser(user: User): SafeUser {
-    const { agent, ...safeUser } = user;
+    const { agent, password, ...safeUser } = user;
     return safeUser;
+  }
+
+  private async hashPassword(password: string): Promise<string> {
+    const salt = await bcrypt.genSalt(10);
+    return bcrypt.hash(password, salt);
   }
 }

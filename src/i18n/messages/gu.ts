@@ -73,6 +73,7 @@ export const guMessages: MessageTree = {
   validation: {
     password: {
       minLength: 'પાસવર્ડ ઓછામાં ઓછા 8 અક્ષરોનો હોવો જોઈએ',
+      maxLength: 'પાસવર્ડ વધુમાં વધુ 255 અક્ષરોનો હોવો જોઈએ',
       requireLetter: 'પાસવર્ડમાં ઓછામાં ઓછો એક અક્ષર હોવો જોઈએ',
       requireNumber: 'પાસવર્ડમાં ઓછામાં ઓછી એક સંખ્યા હોવી જોઈએ',
       required: 'પાસવર્ડ જરૂરી છે',

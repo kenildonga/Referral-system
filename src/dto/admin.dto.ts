@@ -5,7 +5,7 @@ import { createZodDto } from 'nestjs-zod';
 export const passwordSchema = z
   .string()
   .min(8, 'validation.password.minLength')
-  .max(255)
+  .max(255, 'validation.password.maxLength')
   .regex(/[a-zA-Z]/, 'validation.password.requireLetter')
   .regex(/[0-9]/, 'validation.password.requireNumber');
 

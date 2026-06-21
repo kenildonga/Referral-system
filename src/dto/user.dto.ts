@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
+import { passwordSchema } from './admin.dto';
 
 export const FillUserFormSchema = z.object({
   firstName: z.string().min(1, 'validation.firstName.required').max(255),
@@ -8,6 +9,10 @@ export const FillUserFormSchema = z.object({
     .string()
     .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
   email: z.string().email('validation.email.invalid').max(255),
+  password: z
+    .string()
+    .min(1, 'validation.password.required')
+    .pipe(passwordSchema),
 });
 
 export const UpdateUserAgentSchema = z.object({
@@ -29,6 +34,7 @@ export const UpdateUserSchema = z
       .string()
       .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
     email: z.string().email('validation.email.invalid').max(255),
+    password: passwordSchema,
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {

@@ -33,6 +33,9 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   email: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  password: string | null;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

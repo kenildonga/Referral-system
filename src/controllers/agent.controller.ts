@@ -89,6 +89,14 @@ export class AgentController {
     return this.agentService.updateProfile(req.agent.id, updateAgentProfileDto);
   }
 
+  @Get('me/users')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List users assigned to logged-in agent (Agent)' })
+  findMyUsers(@Req() req: AgentAuthenticatedRequest) {
+    return this.agentService.findMyUsers(req.agent.id);
+  }
+
   //////////////////////////////////////////////////////////////////////
   //                            Admin Apis                            //
   //////////////////////////////////////////////////////////////////////

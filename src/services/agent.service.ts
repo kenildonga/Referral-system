@@ -9,6 +9,7 @@ import { Repository, FindOptionsSelect } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { Agent } from '../entities/agents.entity';
+import { User } from '../entities/users.entity';
 import {
   CreateAgentDto,
   UpdateAgentDto,
@@ -21,6 +22,18 @@ import {
 import { I18nService } from '../i18n/i18n.service';
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
+type SafeUser = Omit<User, 'agent'>;
+
+const SAFE_USER_SELECT: FindOptionsSelect<User> = {
+  id: true,
+  agentId: true,
+  firstName: true,
+  lastName: true,
+  phoneNumber: true,
+  email: true,
+  createdAt: true,
+  updatedAt: true,
+};
 
 const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
   id: true,
@@ -46,6 +59,8 @@ export class AgentService {
   constructor(
     @InjectRepository(Agent)
     private readonly agentRepository: Repository<Agent>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly i18n: I18nService,
   ) {}
 
@@ -155,6 +170,15 @@ export class AgentService {
     updateAgentProfileDto: UpdateAgentProfileDto,
   ): Promise<SafeAgent> {
     return this.update(agentId, updateAgentProfileDto);
+  }
+
+  async findMyUsers(agentId: string): Promise<SafeUser[]> {
+    const users = await this.userRepository.find({
+      where: { agentId },
+      select: SAFE_USER_SELECT,
+      order: { createdAt: 'DESC' },
+    });
+    return users.map((user) => this.toSafeUser(user));
   }
 
   // --- Admin Management ---
@@ -394,5 +418,10 @@ export class AgentService {
   private toSafeAgent(agent: Agent): SafeAgent {
     const { password, tokenVersion, createdBy, ...safeAgent } = agent;
     return safeAgent;
+  }
+
+  private toSafeUser(user: User): SafeUser {
+    const { agent, ...safeUser } = user;
+    return safeUser;
   }
 }

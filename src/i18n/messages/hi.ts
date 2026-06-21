@@ -39,6 +39,9 @@ export const hiMessages: MessageTree = {
   },
   user: {
     notFound: 'आईडी {{id}} वाला उपयोगकर्ता नहीं मिला',
+    deletedSuccess: 'उपयोगकर्ता सफलतापूर्वक हटाया गया',
+    emailExists: 'इस ईमेल वाला उपयोगकर्ता पहले से मौजूद है',
+    phoneNumberExists: 'इस फ़ोन नंबर वाला उपयोगकर्ता पहले से मौजूद है',
     agentNotFound: 'आईडी {{id}} वाला एजेंट नहीं मिला',
     agentInactive: 'चयनित एजेंट सक्रिय नहीं है',
     agentLocationMismatch:

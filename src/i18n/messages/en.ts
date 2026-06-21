@@ -35,6 +35,9 @@ export const enMessages = {
   },
   user: {
     notFound: 'User with ID {{id}} not found',
+    deletedSuccess: 'User deleted successfully',
+    emailExists: 'User with this email already exists',
+    phoneNumberExists: 'User with this phone number already exists',
     agentNotFound: 'Agent with ID {{id}} not found',
     agentInactive: 'Selected agent is not active',
     agentLocationMismatch:

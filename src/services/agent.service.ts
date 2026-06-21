@@ -19,6 +19,7 @@ import {
   SignUpAgentDto,
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
+import { UpdateUserDto } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
@@ -179,6 +180,67 @@ export class AgentService {
       order: { createdAt: 'DESC' },
     });
     return users.map((user) => this.toSafeUser(user));
+  }
+
+  async findMyUserById(agentId: string, userId: string): Promise<SafeUser> {
+    const user = await this.findAssignedUserOrFail(agentId, userId);
+    return this.toSafeUser(user);
+  }
+
+  async updateMyUser(
+    agentId: string,
+    userId: string,
+    updateUserDto: UpdateUserDto,
+  ): Promise<SafeUser> {
+    const user = await this.findAssignedUserOrFail(agentId, userId);
+
+    if (updateUserDto.firstName !== undefined) {
+      user.firstName = updateUserDto.firstName;
+    }
+
+    if (updateUserDto.lastName !== undefined) {
+      user.lastName = updateUserDto.lastName;
+    }
+
+    if (
+      updateUserDto.phoneNumber !== undefined &&
+      updateUserDto.phoneNumber !== user.phoneNumber
+    ) {
+      const existing = await this.userRepository.findOne({
+        where: { phoneNumber: updateUserDto.phoneNumber },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException('user.phoneNumberExists');
+      }
+      user.phoneNumber = updateUserDto.phoneNumber;
+    }
+
+    if (
+      updateUserDto.email !== undefined &&
+      updateUserDto.email !== user.email
+    ) {
+      const existing = await this.userRepository.findOne({
+        where: { email: updateUserDto.email },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException('user.emailExists');
+      }
+      user.email = updateUserDto.email;
+    }
+
+    const saved = await this.userRepository.save(user);
+    return this.toSafeUser(saved);
+  }
+
+  async removeMyUser(
+    agentId: string,
+    userId: string,
+  ): Promise<{ message: string }> {
+    const user = await this.findAssignedUserOrFail(agentId, userId);
+    await this.userRepository.remove(user);
+    return { message: this.i18n.t('user.deletedSuccess') };
   }
 
   // --- Admin Management ---
@@ -413,6 +475,19 @@ export class AgentService {
     }
     agent.tokenVersion += 1;
     await this.agentRepository.save(agent);
+  }
+
+  private async findAssignedUserOrFail(
+    agentId: string,
+    userId: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId, agentId },
+    });
+    if (!user) {
+      throw new NotFoundException(this.i18n.t('user.notFound', { id: userId }));
+    }
+    return user;
   }
 
   private toSafeAgent(agent: Agent): SafeAgent {

@@ -22,6 +22,7 @@ import {
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
+import { UpdateUserDto } from '../dto/user.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
 
@@ -95,6 +96,40 @@ export class AgentController {
   @ApiOperation({ summary: 'List users assigned to logged-in agent (Agent)' })
   findMyUsers(@Req() req: AgentAuthenticatedRequest) {
     return this.agentService.findMyUsers(req.agent.id);
+  }
+
+  @Get('me/users/:id')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get assigned user details (Agent)' })
+  findMyUserById(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.agentService.findMyUserById(req.agent.id, id);
+  }
+
+  @Patch('me/users/:id')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update assigned user details (Agent)' })
+  updateMyUser(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    return this.agentService.updateMyUser(req.agent.id, id, updateUserDto);
+  }
+
+  @Delete('me/users/:id')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete assigned user (Agent)' })
+  removeMyUser(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.agentService.removeMyUser(req.agent.id, id);
   }
 
   //////////////////////////////////////////////////////////////////////

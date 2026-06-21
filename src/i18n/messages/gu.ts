@@ -39,6 +39,9 @@ export const guMessages: MessageTree = {
   },
   user: {
     notFound: 'આઈડી {{id}} સાથેનો વપરાશકર્તા મળ્યો નથી',
+    deletedSuccess: 'વપરાશકર્તા સફળતાપૂર્વક કાઢી નાખ્યો',
+    emailExists: 'આ ઇમેઇલ સાથેનો વપરાશકર્તા પહેલેથી અસ્તિત્વમાં છે',
+    phoneNumberExists: 'આ ફોન નંબર સાથેનો વપરાશકર્તા પહેલેથી અસ્તિત્વમાં છે',
     agentNotFound: 'આઈડી {{id}} સાથેનો એજન્ટ મળ્યો નથી',
     agentInactive: 'પસંદ કરેલ એજન્ટ સક્રિય નથી',
     agentLocationMismatch:

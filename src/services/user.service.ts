@@ -47,32 +47,6 @@ export class UserService {
     return this.toSafeUser(saved);
   }
 
-  async findAllStates(): Promise<
-    Pick<State, 'id' | 'name' | 'stateCode'>[]
-  > {
-    return this.stateRepository.find({
-      select: { id: true, name: true, stateCode: true },
-      order: { name: 'ASC' },
-    });
-  }
-
-  async findCitiesByState(
-    stateId: number,
-  ): Promise<Pick<City, 'id' | 'name' | 'stateId'>[]> {
-    const state = await this.stateRepository.findOne({ where: { id: stateId } });
-    if (!state) {
-      throw new NotFoundException(
-        this.i18n.t('location.stateNotFound', { id: stateId }),
-      );
-    }
-
-    return this.cityRepository.find({
-      where: { stateId },
-      select: { id: true, name: true, stateId: true },
-      order: { name: 'ASC' },
-    });
-  }
-
   async findAgentsByLocation(
     query: ListAgentsQueryDto,
   ): Promise<SafeAgent[]> {

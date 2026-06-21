@@ -15,10 +15,12 @@ import { AdminController } from './controllers/admin.controller';
 import { AgentController } from './controllers/agent.controller';
 import { FormController } from './controllers/form.controller';
 import { UserController } from './controllers/user.controller';
+import { IndexController } from './controllers/index.controller';
 import { AdminService } from './services/admin.service';
 import { AgentService } from './services/agent.service';
 import { FormService } from './services/form.service';
 import { UserService } from './services/user.service';
+import { IndexService } from './services/index.service';
 import { I18nModule } from './i18n/i18n.module';
 import { CommonModule } from './common/common.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -62,12 +64,19 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       FormResponse,
     ]),
   ],
-  controllers: [AdminController, AgentController, FormController, UserController],
+  controllers: [
+    AdminController,
+    AgentController,
+    FormController,
+    UserController,
+    IndexController,
+  ],
   providers: [
     AdminService,
     AgentService,
     FormService,
     UserService,
+    IndexService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

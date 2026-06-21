@@ -6,8 +6,6 @@ import {
   Body,
   Param,
   Query,
-  ParseIntPipe,
-  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -17,7 +15,6 @@ import {
   UpdateUserAgentDto,
   ListAgentsQueryDto,
 } from '../dto/user.dto';
-import { AgentGuard } from '../common/guards/jwt-agent-auth.guard';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -30,18 +27,6 @@ export class UserController {
   @ApiOperation({ summary: 'Fill user referral form' })
   fillForm(@Body() dto: FillUserFormDto) {
     return this.userService.fillForm(dto);
-  }
-
-  @Get('states')
-  @ApiOperation({ summary: 'List all states' })
-  findAllStates() {
-    return this.userService.findAllStates();
-  }
-
-  @Get('states/:stateId/cities')
-  @ApiOperation({ summary: 'List cities for a state' })
-  findCitiesByState(@Param('stateId', ParseIntPipe) stateId: number) {
-    return this.userService.findCitiesByState(stateId);
   }
 
   @Get('agents')

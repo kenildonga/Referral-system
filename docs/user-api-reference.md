@@ -28,16 +28,16 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 Call the endpoints in this order:
 
 1. **`POST /users`** — create user profile; store returned `id`
-2. **`GET /users/states`** — populate state dropdown
-3. **`GET /users/states/:stateId/cities`** — populate city dropdown after state selection
+2. **`GET /states`** — populate state dropdown
+3. **`GET /states/:stateId/cities`** — populate city dropdown after state selection
 4. **`GET /users/agents?stateId=&cityId=`** — list agents for the selected location
 5. **`PATCH /users/:id/agent`** — assign the chosen agent to the user
 
 ```mermaid
 flowchart LR
   fillForm["POST /users"]
-  selectState["GET /users/states"]
-  selectCity["GET /users/states/:stateId/cities"]
+  selectState["GET /states"]
+  selectCity["GET /states/:stateId/cities"]
   listAgents["GET /users/agents"]
   assignAgent["PATCH /users/:id/agent"]
   fillForm --> selectState --> selectCity --> listAgents --> assignAgent
@@ -204,7 +204,7 @@ curl -X POST http://localhost:3000/users \
 
 ---
 
-### `GET /users/states`
+### `GET /states`
 
 List all states for the location picker.
 
@@ -234,12 +234,12 @@ Results are ordered by `name` ascending.
 **Example:**
 
 ```bash
-curl http://localhost:3000/users/states
+curl http://localhost:3000/states
 ```
 
 ---
 
-### `GET /users/states/:stateId/cities`
+### `GET /states/:stateId/cities`
 
 List cities for a selected state.
 
@@ -249,7 +249,7 @@ List cities for a selected state.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `stateId` | `number` | Yes | State ID from `GET /users/states` |
+| `stateId` | `number` | Yes | State ID from `GET /states` |
 
 **Success `200`:**
 
@@ -280,7 +280,7 @@ Results are ordered by `name` ascending.
 **Example:**
 
 ```bash
-curl http://localhost:3000/users/states/1/cities
+curl http://localhost:3000/states/1/cities
 ```
 
 ---
@@ -295,8 +295,8 @@ List active agents for a state and city.
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
-| `stateId` | `number` | Yes | State ID from `GET /users/states` |
-| `cityId` | `number` | Yes | City ID from `GET /users/states/:stateId/cities` |
+| `stateId` | `number` | Yes | State ID from `GET /states` |
+| `cityId` | `number` | Yes | City ID from `GET /states/:stateId/cities` |
 
 The server resolves `stateId` / `cityId` to names and returns agents where `agent.state` and `agent.city` match those names and `isActive` is `true`.
 
@@ -424,10 +424,10 @@ USER=$(curl -s -X POST http://localhost:3000/users \
 USER_ID=$(echo "$USER" | jq -r '.id')
 
 # 2. List states
-curl -s http://localhost:3000/users/states | jq
+curl -s http://localhost:3000/states | jq
 
 # 3. List cities for state 1
-curl -s http://localhost:3000/users/states/1/cities | jq
+curl -s http://localhost:3000/states/1/cities | jq
 
 # 4. List agents for state 1, city 10
 AGENTS=$(curl -s "http://localhost:3000/users/agents?stateId=1&cityId=10")
@@ -488,8 +488,8 @@ Validation failures (`400`) may return `message` as a string array:
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | `POST` | `/users` | Public | Create user profile |
-| `GET` | `/users/states` | Public | List states |
-| `GET` | `/users/states/:stateId/cities` | Public | List cities for a state |
+| `GET` | `/states` | Public | List states |
+| `GET` | `/states/:stateId/cities` | Public | List cities for a state |
 | `GET` | `/users/agents?stateId=&cityId=` | Public | List active agents by location |
 | `PATCH` | `/users/:id/agent` | Public | Assign agent to user |
 

@@ -62,6 +62,8 @@ export const enMessages = {
     fileTypeNotAllowed: 'File type is not allowed',
     fileNotFound: 'Uploaded file not found',
     invalidFileKey: 'Invalid file reference',
+    invalidSubmissionUserType:
+      'This form is not available for your account type',
   },
   otp: {
     invalidOrExpired: 'Invalid or expired OTP',

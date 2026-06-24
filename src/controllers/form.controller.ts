@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   Req,
   UseInterceptors,
 } from '@nestjs/common';
@@ -14,12 +15,15 @@ import { Throttle } from '@nestjs/throttler';
 import { FormService } from '../services/form.service';
 import {
   CreateFormDto,
+  ListFormsQueryDto,
   UpdateFormDto,
   SubmitResponseDto,
 } from '../dto/form.dto';
 import { PresignUploadDto } from '../dto/form-upload.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
+import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
+import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
 
 @ApiTags('forms')
 @Controller('forms')
@@ -38,8 +42,15 @@ export class FormController {
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all forms - (All type users)' })
-  findAll() {
-    return this.formService.findAll();
+  findAll(
+    @Req()
+    req:
+      | AuthenticatedRequest
+      | AgentAuthenticatedRequest
+      | UserAuthenticatedRequest,
+    @Query() query: ListFormsQueryDto,
+  ) {
+    return this.formService.findAll(query, req);
   }
 
   @Put(':id')
@@ -53,7 +64,9 @@ export class FormController {
   @Delete(':id')
   @UseInterceptors(AllRoleAuthInterceptor(['superAdmin']))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Soft-delete a form and all its responses - (Super Admin)' })
+  @ApiOperation({
+    summary: 'Soft-delete a form and all its responses - (Super Admin)',
+  })
   remove(@Param('id') id: string) {
     return this.formService.remove(id);
   }
@@ -61,15 +74,26 @@ export class FormController {
   @Get(':id/responses')
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all submissions for a form - (All type users)' })
-  listResponses(@Param('id') id: string) {
-    return this.formService.listResponses(id);
+  @ApiOperation({
+    summary: 'List all submissions for a form - (All type users)',
+  })
+  listResponses(
+    @Param('id') id: string,
+    @Req()
+    req:
+      | AuthenticatedRequest
+      | AgentAuthenticatedRequest
+      | UserAuthenticatedRequest,
+  ) {
+    return this.formService.listResponses(id, req);
   }
 
   @Delete(':id/responses/:responseId')
   @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Soft-delete a form submission - (Admin and Super Admin)' })
+  @ApiOperation({
+    summary: 'Soft-delete a form submission - (Admin and Super Admin)',
+  })
   removeResponse(
     @Param('id') id: string,
     @Param('responseId') responseId: string,
@@ -78,42 +102,65 @@ export class FormController {
   }
 
   @Post(':id/uploads/presign')
-  @UseInterceptors(AllRoleAuthInterceptor(['all']))
+  @UseInterceptors(AllRoleAuthInterceptor(['agent', 'user']))
   @ApiBearerAuth()
   @Throttle({ default: { limit: 20, ttl: 60000 } })
-  @ApiOperation({ summary: 'Get presigned S3 URL for file upload - (All type users)' })
-  presignUpload(@Param('id') id: string, @Body() dto: PresignUploadDto) {
-    return this.formService.presignUpload(id, dto);
+  @ApiOperation({
+    summary: 'Get presigned S3 URL for file upload - (Agent and User)',
+  })
+  presignUpload(
+    @Param('id') id: string,
+    @Req() req: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    @Body() dto: PresignUploadDto,
+  ) {
+    return this.formService.presignUpload(id, dto, req);
   }
 
   @Get(':id/responses/:responseId/files/:fieldId/download')
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get presigned S3 download URL for an uploaded file - (All type users)',
+    summary:
+      'Get presigned S3 download URL for an uploaded file - (All type users)',
   })
   getFileDownloadUrl(
     @Param('id') id: string,
     @Param('responseId') responseId: string,
     @Param('fieldId') fieldId: string,
+    @Req()
+    req:
+      | AuthenticatedRequest
+      | AgentAuthenticatedRequest
+      | UserAuthenticatedRequest,
   ) {
-    return this.formService.getFileDownloadUrl(id, responseId, fieldId);
+    return this.formService.getFileDownloadUrl(id, responseId, fieldId, req);
   }
 
   @Get(':id')
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get form schema by ID - (All type users)' })
-  findOne(@Param('id') id: string) {
-    return this.formService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @Req()
+    req:
+      | AuthenticatedRequest
+      | AgentAuthenticatedRequest
+      | UserAuthenticatedRequest,
+  ) {
+    return this.formService.findOne(id, req);
   }
 
   @Post(':id/responses')
-  @UseInterceptors(AllRoleAuthInterceptor(['all']))
+  @UseInterceptors(AllRoleAuthInterceptor(['agent', 'user']))
   @ApiBearerAuth()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
-  @ApiOperation({ summary: 'Submit form response - (All type users)' })
-  submit(@Param('id') id: string, @Body() dto: SubmitResponseDto) {
-    return this.formService.submitResponse(id, dto);
+  @ApiOperation({ summary: 'Submit form response - (Agent and User)' })
+  submit(
+    @Param('id') id: string,
+    @Req() req: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    @Body() dto: SubmitResponseDto,
+  ) {
+    return this.formService.submitResponse(id, dto, req);
   }
 }

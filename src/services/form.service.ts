@@ -2,13 +2,22 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
+import { Agent } from '../entities/agents.entity';
 import { Form } from '../entities/forms.entity';
 import { FormResponse } from '../entities/form-responses.entity';
+import { SubmissionUserType } from '../entities/enum';
+import { User } from '../entities/users.entity';
 import {
   CreateFormDto,
+  FormListItemDto,
+  FormResponseListItemDto,
+  FormResponseSubmitterDto,
+  ListFormsQueryDto,
   UpdateFormDto,
   SubmitResponseDto,
   FormFieldDto,
@@ -16,6 +25,14 @@ import {
 import { PresignUploadDto } from '../dto/form-upload.dto';
 import { S3Service } from '../common/helpers/s3.service';
 import { I18nService } from '../i18n/i18n.service';
+import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
+import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
+import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
+
+type FormAccessRequest =
+  | AuthenticatedRequest
+  | AgentAuthenticatedRequest
+  | UserAuthenticatedRequest;
 
 @Injectable()
 export class FormService {
@@ -24,14 +41,16 @@ export class FormService {
     private readonly formRepository: Repository<Form>,
     @InjectRepository(FormResponse)
     private readonly responseRepository: Repository<FormResponse>,
+    @InjectRepository(Agent)
+    private readonly agentRepository: Repository<Agent>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly s3Service: S3Service,
     private readonly i18n: I18nService,
   ) {}
 
   private async findFormOrFail(id: string): Promise<Form> {
     const form = await this.formRepository.findOne({ where: { id } });
-
-
 
     if (!form) {
       throw new NotFoundException('form.notFound');
@@ -61,9 +80,37 @@ export class FormService {
     return this.formRepository.save(form);
   }
 
-  async findAll(): Promise<Form[]> {
-    return this.formRepository.find({
+  async findAll(
+    query: ListFormsQueryDto,
+    request: FormAccessRequest,
+  ): Promise<FormListItemDto[]> {
+    const submitter = this.resolveOptionalSubmitter(request);
+    if (
+      submitter &&
+      query.userType &&
+      query.userType !== submitter.submitterType
+    ) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+
+    const effectiveUserType = submitter?.submitterType ?? query.userType;
+
+    const where: {
+      submissionUserType?: SubmissionUserType;
+      isPublished?: boolean;
+    } = {};
+
+    if (effectiveUserType) {
+      where.submissionUserType = effectiveUserType;
+    }
+
+    if (submitter) {
+      where.isPublished = true;
+    }
+
+    const forms = await this.formRepository.find({
       order: { updatedAt: 'DESC' },
+      where,
       select: {
         id: true,
         title: true,
@@ -74,10 +121,59 @@ export class FormService {
         updatedAt: true,
       },
     });
+
+    if (!submitter || forms.length === 0) {
+      if (forms.length === 0) {
+        return [];
+      }
+
+      const submittedCountByFormId = submitter
+        ? new Map<string, number>()
+        : await this.getSubmittedCountsByFormIds(forms.map((form) => form.id));
+
+      return forms.map((form) => ({
+        ...form,
+        isSubmitted: null,
+        submittedCount: submitter
+          ? null
+          : (submittedCountByFormId.get(form.id) ?? 0),
+      }));
+    }
+
+    const submittedRows = await this.responseRepository.find({
+      where: {
+        formId: In(forms.map((form) => form.id)),
+        submitterId: submitter.submitterId,
+        submitterType: submitter.submitterType,
+      },
+      select: {
+        formId: true,
+      },
+    });
+
+    const submittedFormIds = new Set(submittedRows.map((row) => row.formId));
+
+    return forms.map((form) => ({
+      ...form,
+      isSubmitted: submittedFormIds.has(form.id),
+      submittedCount: null,
+    }));
   }
 
-  async findOne(id: string): Promise<Form> {
-    return this.findFormOrFail(id);
+  async findOne(id: string, request: FormAccessRequest): Promise<Form> {
+    const form = await this.findFormOrFail(id);
+    const submitter = this.resolveOptionalSubmitter(request);
+
+    if (!submitter) {
+      return form;
+    }
+
+    if (!form.isPublished) {
+      throw new BadRequestException('form.notPublished');
+    }
+
+    this.assertSubmissionUserTypeAllowed(form, submitter.submitterType);
+    return form;
   }
 
   async update(id: string, dto: UpdateFormDto): Promise<Form> {
@@ -105,13 +201,17 @@ export class FormService {
   async submitResponse(
     formId: string,
     dto: SubmitResponseDto,
+    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
   ): Promise<FormResponse> {
-    
+    const { submitterId, submitterType } = this.resolveSubmitter(request);
+
     const form = await this.findFormOrFail(formId);
 
     if (!form.isPublished) {
       throw new BadRequestException('form.notPublished');
     }
+
+    this.assertSubmissionUserTypeAllowed(form, submitterType);
 
     this.assertAnswersMatchSchema(
       form.fields as FormFieldDto[],
@@ -119,19 +219,108 @@ export class FormService {
       formId,
     );
 
+    const existingResponse = await this.responseRepository.findOne({
+      where: {
+        formId,
+        submitterId,
+        submitterType,
+      },
+      order: { submittedAt: 'DESC' },
+    });
+
+    if (existingResponse) {
+      const previousAnswers = existingResponse.answers;
+      existingResponse.answers = dto.answers;
+      const savedResponse =
+        await this.responseRepository.save(existingResponse);
+      void this.deleteRemovedResponseFiles(previousAnswers, dto.answers);
+      return savedResponse;
+    }
+
     const response = this.responseRepository.create({
       formId,
+      submitterId,
+      submitterType,
       answers: dto.answers,
     });
 
     return this.responseRepository.save(response);
   }
 
-  async listResponses(formId: string): Promise<FormResponse[]> {
-    await this.findFormOrFail(formId);
-    return this.responseRepository.find({
-      where: { formId },
+  private resolveSubmitter(
+    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+  ): { submitterId: string; submitterType: SubmissionUserType } {
+    if ('agent' in request && request.agent?.id) {
+      return {
+        submitterId: request.agent.id,
+        submitterType: SubmissionUserType.AGENT,
+      };
+    }
+
+    if ('user' in request && request.user?.id) {
+      return {
+        submitterId: request.user.id,
+        submitterType: SubmissionUserType.USER,
+      };
+    }
+
+    throw new UnauthorizedException('auth.invalidOrExpiredToken');
+  }
+
+  async listResponses(
+    formId: string,
+    request: FormAccessRequest,
+  ): Promise<FormResponseListItemDto[]> {
+    const form = await this.findFormOrFail(formId);
+    const submitter = this.resolveOptionalSubmitter(request);
+
+    if (submitter) {
+      this.assertSubmissionUserTypeAllowed(form, submitter.submitterType);
+    }
+
+    const responses = await this.responseRepository.find({
+      where: {
+        formId,
+        ...(submitter
+          ? {
+              submitterId: submitter.submitterId,
+              submitterType: submitter.submitterType,
+            }
+          : {}),
+      },
       order: { submittedAt: 'DESC' },
+    });
+
+    const submitterMap = await this.buildSubmitterMap(responses);
+
+    return responses.map((response) => {
+      const submitterKey =
+        response.submitterId && response.submitterType
+          ? `${response.submitterType}:${response.submitterId}`
+          : null;
+      const submitter = submitterKey
+        ? (submitterMap.get(submitterKey) ?? {
+            id: response.submitterId,
+            type: response.submitterType,
+            name: null,
+            phoneNumber: null,
+          })
+        : {
+            id: null,
+            type: null,
+            name: null,
+            phoneNumber: null,
+          };
+
+      return {
+        id: response.id,
+        formId: response.formId,
+        submitterId: response.submitterId,
+        submitterType: response.submitterType,
+        submitter,
+        answers: response.answers,
+        submittedAt: response.submittedAt,
+      };
     });
   }
 
@@ -148,18 +337,22 @@ export class FormService {
   async presignUpload(
     formId: string,
     dto: PresignUploadDto,
-  ): Promise<{ uploadUrl: string; key: string; url: string; expiresIn: number }> {
+    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+  ): Promise<{
+    uploadUrl: string;
+    key: string;
+    url: string;
+    expiresIn: number;
+  }> {
+    const submitter = this.resolveSubmitter(request);
     const form = await this.findFormOrFail(formId);
     if (!form.isPublished) {
       throw new BadRequestException('form.notPublished');
     }
 
-    this.assertFileUploadAllowed(
-      form,
-      dto.fieldId,
-      dto.contentType,
-      dto.size,
-    );
+    this.assertSubmissionUserTypeAllowed(form, submitter.submitterType);
+
+    this.assertFileUploadAllowed(form, dto.fieldId, dto.contentType, dto.size);
 
     const key = this.s3Service.buildObjectKey(
       formId,
@@ -183,8 +376,23 @@ export class FormService {
     formId: string,
     responseId: string,
     fieldId: string,
+    request: FormAccessRequest,
   ): Promise<{ downloadUrl: string; expiresIn: number }> {
+    const form = await this.findFormOrFail(formId);
+    const submitter = this.resolveOptionalSubmitter(request);
+    if (submitter) {
+      this.assertSubmissionUserTypeAllowed(form, submitter.submitterType);
+    }
+
     const response = await this.findResponseOrFail(formId, responseId);
+    if (
+      submitter &&
+      (response.submitterId !== submitter.submitterId ||
+        response.submitterType !== submitter.submitterType)
+    ) {
+      throw new ForbiddenException('auth.notAuthorized');
+    }
+
     const fileMeta = response.answers[fieldId];
 
     if (
@@ -259,9 +467,7 @@ export class FormService {
     contentType: string,
     sizeBytes: number,
   ): void {
-    const field = (form.fields as FormFieldDto[]).find(
-      (f) => f.id === fieldId,
-    );
+    const field = (form.fields as FormFieldDto[]).find((f) => f.id === fieldId);
 
     if (!field || field.type !== 'file') {
       throw new BadRequestException('form.fileFieldNotFound');
@@ -278,8 +484,7 @@ export class FormService {
       const ext = contentType.split('/').pop()?.toLowerCase();
       const allowed = allowedFileTypes.map((t) => t.toLowerCase());
       const matches = allowed.some(
-        (t) =>
-          t === contentType.toLowerCase() || t === ext || t === `.${ext}`,
+        (t) => t === contentType.toLowerCase() || t === ext || t === `.${ext}`,
       );
       if (!matches) {
         throw new BadRequestException('form.fileTypeNotAllowed');
@@ -301,6 +506,36 @@ export class FormService {
   private async deleteResponseFiles(
     answers: Record<string, unknown>,
   ): Promise<void> {
+    for (const key of this.extractFileKeys(answers)) {
+      try {
+        await this.s3Service.deleteObject(key);
+      } catch {
+        // S3 object can be cleaned by lifecycle rule
+      }
+    }
+  }
+
+  private async deleteRemovedResponseFiles(
+    previousAnswers: Record<string, unknown>,
+    nextAnswers: Record<string, unknown>,
+  ): Promise<void> {
+    const previousKeys = this.extractFileKeys(previousAnswers);
+    const nextKeys = this.extractFileKeys(nextAnswers);
+
+    for (const key of previousKeys) {
+      if (nextKeys.has(key)) {
+        continue;
+      }
+      try {
+        await this.s3Service.deleteObject(key);
+      } catch {
+        // S3 object can be cleaned by lifecycle rule
+      }
+    }
+  }
+
+  private extractFileKeys(answers: Record<string, unknown>): Set<string> {
+    const keys = new Set<string>();
     for (const value of Object.values(answers)) {
       if (
         value &&
@@ -310,12 +545,124 @@ export class FormService {
         'key' in value &&
         typeof value.key === 'string'
       ) {
-        try {
-          await this.s3Service.deleteObject(value.key);
-        } catch {
-          // S3 object can be cleaned by lifecycle rule
-        }
+        keys.add(value.key);
       }
     }
+    return keys;
+  }
+
+  private resolveOptionalSubmitter(
+    request: FormAccessRequest,
+  ): { submitterId: string; submitterType: SubmissionUserType } | null {
+    if ('agent' in request && request.agent?.id) {
+      return {
+        submitterId: request.agent.id,
+        submitterType: SubmissionUserType.AGENT,
+      };
+    }
+
+    if ('user' in request && request.user?.id) {
+      return {
+        submitterId: request.user.id,
+        submitterType: SubmissionUserType.USER,
+      };
+    }
+
+    return null;
+  }
+
+  private assertSubmissionUserTypeAllowed(
+    form: Form,
+    submitterType: SubmissionUserType,
+  ): void {
+    if (form.submissionUserType !== submitterType) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+  }
+
+  private async getSubmittedCountsByFormIds(
+    formIds: string[],
+  ): Promise<Map<string, number>> {
+    if (formIds.length === 0) {
+      return new Map<string, number>();
+    }
+
+    const rows = await this.responseRepository
+      .createQueryBuilder('response')
+      .select('response.formId', 'formId')
+      .addSelect('COUNT(response.id)', 'count')
+      .where('response.formId IN (:...formIds)', { formIds })
+      .groupBy('response.formId')
+      .getRawMany<{ formId: string; count: string }>();
+
+    const countMap = new Map<string, number>();
+    for (const row of rows) {
+      countMap.set(row.formId, Number(row.count));
+    }
+    return countMap;
+  }
+
+  private async buildSubmitterMap(
+    responses: FormResponse[],
+  ): Promise<Map<string, FormResponseSubmitterDto>> {
+    const submitterMap = new Map<string, FormResponseSubmitterDto>();
+    const agentIds = new Set<string>();
+    const userIds = new Set<string>();
+
+    for (const response of responses) {
+      if (!response.submitterId || !response.submitterType) {
+        continue;
+      }
+      if (response.submitterType === SubmissionUserType.AGENT) {
+        agentIds.add(response.submitterId);
+      }
+      if (response.submitterType === SubmissionUserType.USER) {
+        userIds.add(response.submitterId);
+      }
+    }
+
+    if (agentIds.size > 0) {
+      const agents = await this.agentRepository.find({
+        where: { id: In(Array.from(agentIds)) },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
+        },
+      });
+
+      for (const agent of agents) {
+        submitterMap.set(`${SubmissionUserType.AGENT}:${agent.id}`, {
+          id: agent.id,
+          type: SubmissionUserType.AGENT,
+          name: `${agent.firstName} ${agent.lastName}`.trim(),
+          phoneNumber: agent.phoneNumber ?? null,
+        });
+      }
+    }
+
+    if (userIds.size > 0) {
+      const users = await this.userRepository.find({
+        where: { id: In(Array.from(userIds)) },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          phoneNumber: true,
+        },
+      });
+
+      for (const user of users) {
+        submitterMap.set(`${SubmissionUserType.USER}:${user.id}`, {
+          id: user.id,
+          type: SubmissionUserType.USER,
+          name: `${user.firstName} ${user.lastName}`.trim(),
+          phoneNumber: user.phoneNumber ?? null,
+        });
+      }
+    }
+
+    return submitterMap;
   }
 }

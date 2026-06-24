@@ -66,6 +66,7 @@ export const guMessages: MessageTree = {
     fileTypeNotAllowed: 'ફાઇલ પ્રકાર મંજૂર નથી',
     fileNotFound: 'અપલોડ કરેલી ફાઇલ મળી નથી',
     invalidFileKey: 'અમાન્ય ફાઇલ સંદર્ભ',
+    invalidSubmissionUserType: 'આ ફોર્મ તમારા એકાઉન્ટ પ્રકાર માટે ઉપલબ્ધ નથી',
   },
   otp: {
     invalidOrExpired: 'અમાન્ય અથવા સમાપ્ત OTP',

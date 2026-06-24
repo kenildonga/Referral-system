@@ -56,7 +56,6 @@ export const UpdateFormSchema = z
 const StoredFileMetaSchema = z.object({
   kind: z.literal('file'),
   key: z.string().min(1, 'validation.fileKey.required'),
-  url: z.string().url('validation.fileUrl.invalid'),
   name: z.string(),
   size: z.number().int().nonnegative(),
   type: z.string(),
@@ -74,7 +73,41 @@ export const SubmitResponseSchema = z.object({
   answers: z.record(z.string(), StoredAnswerValueSchema),
 });
 
+export const ListFormsQuerySchema = z.object({
+  userType: z.nativeEnum(SubmissionUserType).optional(),
+});
+
 export type FormFieldDto = z.infer<typeof FormFieldSchema>;
+export type ListFormsQueryDtoType = z.infer<typeof ListFormsQuerySchema>;
+
+export interface FormListItemDto {
+  id: string;
+  title: string;
+  description: string | null;
+  isPublished: boolean;
+  submissionUserType: SubmissionUserType;
+  createdAt: Date;
+  updatedAt: Date;
+  isSubmitted: boolean | null;
+  submittedCount: number | null;
+}
+
+export interface FormResponseSubmitterDto {
+  id: string | null;
+  type: SubmissionUserType | null;
+  name: string | null;
+  phoneNumber: string | null;
+}
+
+export interface FormResponseListItemDto {
+  id: string;
+  formId: string;
+  submitterId: string | null;
+  submitterType: SubmissionUserType | null;
+  submitter: FormResponseSubmitterDto;
+  answers: Record<string, unknown>;
+  submittedAt: Date;
+}
 
 export class CreateFormDto extends createZodDto(CreateFormSchema) {}
 export interface CreateFormDto extends z.infer<typeof CreateFormSchema> {}
@@ -83,4 +116,9 @@ export class UpdateFormDto extends createZodDto(UpdateFormSchema) {}
 export interface UpdateFormDto extends z.infer<typeof UpdateFormSchema> {}
 
 export class SubmitResponseDto extends createZodDto(SubmitResponseSchema) {}
-export interface SubmitResponseDto extends z.infer<typeof SubmitResponseSchema> {}
+export interface SubmitResponseDto extends z.infer<
+  typeof SubmitResponseSchema
+> {}
+
+export class ListFormsQueryDto extends createZodDto(ListFormsQuerySchema) {}
+export interface ListFormsQueryDto extends ListFormsQueryDtoType {}

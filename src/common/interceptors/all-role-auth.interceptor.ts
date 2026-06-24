@@ -53,8 +53,7 @@ export function AllRoleAuthInterceptor(
   const allowed = resolveAllowedRoles(roles);
   const needsAgentAuth = allowed.has('agent');
   const needsUserAuth = allowed.has('user');
-  const needsAdminAuth =
-    allowed.has('admin') || allowed.has('superAdmin');
+  const needsAdminAuth = allowed.has('admin') || allowed.has('superAdmin');
 
   @Injectable()
   class MixinAllRoleAuthInterceptor implements NestInterceptor {
@@ -75,9 +74,7 @@ export function AllRoleAuthInterceptor(
       return next.handle();
     }
 
-    private async authenticate(
-      context: ExecutionContext,
-    ): Promise<AuthRole> {
+    private async authenticate(context: ExecutionContext): Promise<AuthRole> {
       const authAttempts: Array<() => Promise<AuthRole>> = [];
 
       if (needsAdminAuth) {
@@ -86,7 +83,7 @@ export function AllRoleAuthInterceptor(
           const request = context
             .switchToHttp()
             .getRequest<AuthenticatedRequest>();
-          return request.admin.role as AuthRole;
+          return request.admin.role;
         });
       }
 

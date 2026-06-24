@@ -38,7 +38,9 @@ export class AdminController {
 
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 60000 } })
-  @ApiOperation({ summary: 'Request password reset OTP (Admin and Super Admin)' })
+  @ApiOperation({
+    summary: 'Request password reset OTP (Admin and Super Admin)',
+  })
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.adminService.forgotPassword(forgotPasswordDto.email);
   }

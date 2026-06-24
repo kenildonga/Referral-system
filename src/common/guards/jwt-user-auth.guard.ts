@@ -21,7 +21,9 @@ export class UserGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<UserAuthenticatedRequest>();
+    const request = context
+      .switchToHttp()
+      .getRequest<UserAuthenticatedRequest>();
     const authHeader = request.headers.authorization;
 
     if (!authHeader) {

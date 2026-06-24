@@ -66,6 +66,8 @@ export const hiMessages: MessageTree = {
     fileTypeNotAllowed: 'फ़ाइल प्रकार की अनुमति नहीं है',
     fileNotFound: 'अपलोड की गई फ़ाइल नहीं मिली',
     invalidFileKey: 'अमान्य फ़ाइल संदर्भ',
+    invalidSubmissionUserType:
+      'यह फ़ॉर्म आपके खाते के प्रकार के लिए उपलब्ध नहीं है',
   },
   otp: {
     invalidOrExpired: 'अमान्य या समाप्त OTP',

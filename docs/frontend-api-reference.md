@@ -131,7 +131,7 @@ Decode client-side only for **UI** (show/hide menus). The API enforces roles ser
 
 | Level | Requirement | Form endpoints |
 |-------|-------------|----------------|
-| **Authenticated** | Valid admin **or** agent JWT | `GET /forms`, `GET /forms/:id`, `POST /forms/:id/responses`, `POST /forms/:id/uploads/presign`, `GET /forms/:id/responses`, `DELETE /forms/:id/responses/:responseId`, file download |
+| **Authenticated** | Valid admin, agent, or user JWT (`POST /forms/:id/responses` is agent/user only) | `GET /forms`, `GET /forms/:id`, `POST /forms/:id/responses`, `POST /forms/:id/uploads/presign`, `GET /forms/:id/responses`, `DELETE /forms/:id/responses/:responseId`, file download |
 | **Super Admin** | Admin JWT + `role: "superAdmin"` | `POST /forms`, `PUT /forms/:id`, `DELETE /forms/:id` |
 
 ### Token invalidation
@@ -232,6 +232,8 @@ interface FormSummary {
   description: string | null;
   isPublished: boolean;
   submissionUserType: SubmissionUserType;
+  isSubmitted: boolean | null;
+  submittedCount: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -256,7 +258,6 @@ function toFormSchema(form: Form): FormSchema {
 interface StoredFileMeta {
   kind: 'file';
   key: string;
-  url: string;
   name: string;
   size: number;
   type: string;                 // MIME type
@@ -272,6 +273,14 @@ type StoredAnswerValue =
 interface FormResponse {
   id: string;
   formId: FormId;
+  submitterId: string | null;
+  submitterType: 'agent' | 'user' | null;
+  submitter: {
+    id: string | null;
+    type: 'agent' | 'user' | null;
+    name: string | null;
+    phoneNumber: string | null;
+  };
   answers: Record<string, StoredAnswerValue>;
   submittedAt: string;
 }
@@ -387,9 +396,23 @@ curl -s -X POST "$VITE_API_URL/forms" \
 
 ### `GET /forms` — List forms
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (admin, superAdmin, agent, or user JWT)
 
 Returns summaries only (no `fields`).
+
+**Query params (optional):**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `userType` | `"agent" \| "user"` | Filter forms by submitter type |
+
+`isSubmitted` behavior:
+- agent/user callers: `true` if caller has at least one active response for the form, otherwise `false`
+- admin/superAdmin callers: always `null`
+
+`submittedCount` behavior:
+- admin/superAdmin callers: total active submissions for each form (`agent + user`)
+- agent/user callers: always `null`
 
 **Success `200`:**
 
@@ -401,6 +424,8 @@ Returns summaries only (no `fields`).
     "description": "Reach out to our team",
     "isPublished": true,
     "submissionUserType": "agent",
+    "isSubmitted": null,
+    "submittedCount": 3,
     "createdAt": "2026-06-16T10:00:00.000Z",
     "updatedAt": "2026-06-16T10:00:00.000Z"
   }
@@ -413,9 +438,11 @@ Ordered by `updatedAt` descending.
 
 ### `GET /forms/:id` — Get form schema
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (admin, superAdmin, agent, or user JWT)
 
-Load schema at runtime before rendering. Works for unpublished forms too (check `isPublished` before allowing submit).
+Load schema at runtime before rendering.
+- agent/user callers can only open published forms matching their `submissionUserType`
+- admin/superAdmin callers can open all forms
 
 **Success `200`:** Full `Form` object.
 
@@ -423,6 +450,8 @@ Load schema at runtime before rendering. Works for unpublished forms too (check 
 
 | Status | i18n key | English message |
 |--------|----------|-----------------|
+| `400` | `form.notPublished` | This form is not accepting responses |
+| `400` | `form.invalidSubmissionUserType` | This form is not available for your account type |
 | `404` | `form.notFound` | Form not found |
 | `401` | `auth.*` | Missing/invalid token |
 
@@ -479,7 +508,7 @@ After deletion, `GET /forms/:id` returns `404`. The record remains in the DB wit
 
 ### `POST /forms/:id/responses` — Submit response
 
-**Auth:** Authenticated (admin or agent JWT)  
+**Auth:** Authenticated (agent or user JWT)  
 **Rate limit:** 10 / minute
 
 **Body:**
@@ -494,7 +523,6 @@ After deletion, `GET /forms/:id` returns `404`. The record remains in the DB wit
     "resume": {
       "kind": "file",
       "key": "forms/550e8400-e29b-41d4-a716-446655440000/resume/a1b2c3d4_resume.pdf",
-      "url": "https://your-bucket.s3.ap-south-1.amazonaws.com/forms/.../resume.pdf",
       "name": "resume.pdf",
       "size": 204800,
       "type": "application/pdf"
@@ -505,12 +533,17 @@ After deletion, `GET /forms/:id` returns `404`. The record remains in the DB wit
 
 Keys in `answers` must match field `id` values from the form schema.
 
+Each agent/user can keep only one active response per form.  
+Submitting again updates (edits) the existing response instead of creating a new one.
+
 **Success `201`:**
 
 ```json
 {
   "id": "resp-uuid",
   "formId": "550e8400-e29b-41d4-a716-446655440000",
+  "submitterId": "a6d4f083-0fdf-412d-b6e0-89495f53b694",
+  "submitterType": "agent",
   "answers": { "...": "..." },
   "submittedAt": "2026-06-16T10:05:00.000Z"
 }
@@ -540,15 +573,37 @@ curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
 
 ### `GET /forms/:id/responses` — List submissions
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (admin, superAdmin, agent, or user JWT)
+
+`agent`/`user` callers only receive their own submissions.  
+`admin`/`superAdmin` callers receive all submissions for that form.
 
 **Success `200`:** `FormResponse[]`, newest first. Soft-deleted responses are excluded.
+
+Example response item:
+
+```json
+{
+  "id": "resp-uuid",
+  "formId": "550e8400-e29b-41d4-a716-446655440000",
+  "submitterId": "a6d4f083-0fdf-412d-b6e0-89495f53b694",
+  "submitterType": "agent",
+  "submitter": {
+    "id": "a6d4f083-0fdf-412d-b6e0-89495f53b694",
+    "type": "agent",
+    "name": "John Doe",
+    "phoneNumber": "9876543210"
+  },
+  "answers": { "...": "..." },
+  "submittedAt": "2026-06-16T10:05:00.000Z"
+}
+```
 
 ---
 
 ### `DELETE /forms/:id/responses/:responseId` — Soft-delete submission
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (agent or user JWT)
 
 **Success `200`:**
 
@@ -588,7 +643,7 @@ sequenceDiagram
 
 ### Step 1 — Request presigned upload URL
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (agent or user JWT)
 
 ```http
 POST /forms/:id/uploads/presign
@@ -623,7 +678,7 @@ Content-Type: application/json
 
 - `uploadUrl` expires in **300 seconds** (5 minutes).
 - `key` follows pattern: `forms/{formId}/{fieldId}/{uploadId}_{sanitizedFileName}`.
-- `url` is the stable object URL to store in answers (not directly downloadable without presign for private buckets).
+- `url` is the stable object URL.
 
 **Errors:**
 
@@ -653,7 +708,7 @@ await fetch(uploadUrl, {
 });
 ```
 
-Do **not** send the admin JWT to S3. Only `Content-Type` must match what you sent to presign.
+Do **not** send your API JWT to S3. Only `Content-Type` must match what you sent to presign.
 
 ### Step 3 — Submit form with file metadata
 
@@ -663,7 +718,6 @@ Build `StoredFileMeta` from the presign response + original file info:
 const fileAnswer: StoredFileMeta = {
   kind: 'file',
   key: presign.key,
-  url: presign.url,
   name: file.name,
   size: file.size,
   type: file.type,
@@ -692,11 +746,12 @@ curl -s -X PUT "$UPLOAD_URL" \
   -H "Content-Type: application/pdf" \
   --data-binary @resume.pdf
 
-# 3. Submit (use key/url from presign response)
+# 3. Submit (use key + file info)
 curl -s -X POST "$VITE_API_URL/forms/$FORM_ID/responses" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"answers\":{\"resume\":$(echo "$PRESIGN" | jq '{kind:"file", key:.key, url:.url, name:"resume.pdf", size:204800, type:"application/pdf"}')}}"
+  -d "$(jq -n --arg key "$(echo "$PRESIGN" | jq -r '.key')" \
+      '{answers:{resume:{kind:"file", key:$key, name:"resume.pdf", size:204800, type:"application/pdf"}}}')"
 ```
 
 ---
@@ -719,7 +774,7 @@ sequenceDiagram
 
 ### Request download URL
 
-**Auth:** Authenticated (admin or agent JWT)
+**Auth:** Authenticated (admin, superAdmin, agent, or user JWT)
 
 ```http
 GET /forms/:id/responses/:responseId/files/:fieldId/download
@@ -731,6 +786,8 @@ Authorization: Bearer <accessToken>
 | `id` | Form UUID |
 | `responseId` | Submission UUID |
 | `fieldId` | File field `id` from schema |
+
+For `agent`/`user` callers, download is allowed only for their own responses.
 
 **Success `200`:**
 
@@ -848,7 +905,6 @@ Use this table if you want stable identifiers in frontend error maps (match on k
 | `validation.contentType.required` | Content type is required |
 | `validation.fileSize.required` | File size is required |
 | `validation.fileKey.required` | File key is required |
-| `validation.fileUrl.invalid` | File URL is invalid |
 
 Zod errors may prefix the field path: `"title: Title is required"`.
 

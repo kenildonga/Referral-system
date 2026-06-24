@@ -80,9 +80,7 @@ export class UserService {
     return { message: this.i18n.t('auth.logoutSuccess') };
   }
 
-  async findAgentsByLocation(
-    query: ListAgentsQueryDto,
-  ): Promise<SafeAgent[]> {
+  async findAgentsByLocation(query: ListAgentsQueryDto): Promise<SafeAgent[]> {
     const { stateName, cityName } = await this.resolveLocationNames(
       query.stateId,
       query.cityId,
@@ -143,7 +141,9 @@ export class UserService {
     stateId: number,
     cityId: number,
   ): Promise<{ stateName: string; cityName: string }> {
-    const state = await this.stateRepository.findOne({ where: { id: stateId } });
+    const state = await this.stateRepository.findOne({
+      where: { id: stateId },
+    });
     if (!state) {
       throw new NotFoundException(
         this.i18n.t('location.stateNotFound', { id: stateId }),

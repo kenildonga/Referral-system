@@ -5,9 +5,7 @@ import { passwordSchema } from './admin.dto';
 export const FillUserFormSchema = z.object({
   firstName: z.string().min(1, 'validation.firstName.required').max(255),
   lastName: z.string().min(1, 'validation.lastName.required').max(255),
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
   email: z.string().email('validation.email.invalid').max(255),
   password: z
     .string()
@@ -27,9 +25,7 @@ export const ListAgentsQuerySchema = z.object({
 });
 
 export const LoginUserSchema = z.object({
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
   password: z.string().min(1, 'validation.password.required'),
 });
 
@@ -37,9 +33,7 @@ export const UpdateUserSchema = z
   .object({
     firstName: z.string().min(1, 'validation.firstName.required').max(255),
     lastName: z.string().min(1, 'validation.lastName.required').max(255),
-    phoneNumber: z
-      .string()
-      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+    phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
     email: z.string().email('validation.email.invalid').max(255),
     password: passwordSchema,
   })

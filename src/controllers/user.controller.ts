@@ -58,10 +58,7 @@ export class UserController {
   @Patch(':id/agent')
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Assign agent to user' })
-  updateAgent(
-    @Param('id') id: string,
-    @Body() dto: UpdateUserAgentDto,
-  ) {
+  updateAgent(@Param('id') id: string, @Body() dto: UpdateUserAgentDto) {
     return this.userService.updateAgent(id, dto);
   }
 }

@@ -67,9 +67,7 @@ export const SignUpAgentSchema = z.object({
     .string()
     .min(1, 'validation.lastName.required')
     .max(255, 'validation.lastName.maxLength'),
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
   email: z
     .string()
     .min(1, 'validation.email.required')

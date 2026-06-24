@@ -29,7 +29,7 @@ import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.
 @ApiTags('agents')
 @Controller('agents')
 export class AgentController {
-  constructor(private readonly agentService: AgentService) { }
+  constructor(private readonly agentService: AgentService) {}
 
   //////////////////////////////////////////////////////////////////////
   //                            Agent Apis                            //
@@ -125,10 +125,7 @@ export class AgentController {
   @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Delete assigned user (Agent)' })
-  removeMyUser(
-    @Req() req: AgentAuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
+  removeMyUser(@Req() req: AgentAuthenticatedRequest, @Param('id') id: string) {
     return this.agentService.removeMyUser(req.agent.id, id);
   }
 
@@ -182,7 +179,9 @@ export class AgentController {
   @Patch(':id/status')
   @UseInterceptors(AllRoleAuthInterceptor(['admin']))
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update agent active status (Admin and Super Admin)' })
+  @ApiOperation({
+    summary: 'Update agent active status (Admin and Super Admin)',
+  })
   updateStatus(
     @Param('id') id: string,
     @Body() updateAgentStatusDto: UpdateAgentStatusDto,

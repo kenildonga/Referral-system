@@ -15,9 +15,7 @@ export class IndexService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findAllStates(): Promise<
-    Pick<State, 'id' | 'name' | 'stateCode'>[]
-  > {
+  async findAllStates(): Promise<Pick<State, 'id' | 'name' | 'stateCode'>[]> {
     return this.stateRepository.find({
       select: { id: true, name: true, stateCode: true },
       order: { name: 'ASC' },
@@ -27,7 +25,9 @@ export class IndexService {
   async findCitiesByState(
     stateId: number,
   ): Promise<Pick<City, 'id' | 'name' | 'stateId'>[]> {
-    const state = await this.stateRepository.findOne({ where: { id: stateId } });
+    const state = await this.stateRepository.findOne({
+      where: { id: stateId },
+    });
     if (!state) {
       throw new NotFoundException(
         this.i18n.t('location.stateNotFound', { id: stateId }),

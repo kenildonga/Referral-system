@@ -43,10 +43,23 @@ export const enMessages = {
     agentInactive: 'Selected agent is not active',
     agentLocationMismatch:
       'Selected agent does not match the provided state and city',
+    noteRequiredForRejection: 'A rejection note is required when rejecting a user',
+    invalidStatusTransition: 'Invalid status transition',
+    invalidReferralCode: 'Referral code is invalid or not found',
+    referralCodeGenerationFailed: 'Failed to generate a unique referral code',
+    approvedSuccess: 'User approved successfully',
+    rejectedSuccess: 'User rejected successfully',
+    chainIdRequiredForApproval: 'A chain must be selected to approve this user',
+    notApprovedForForms:
+      'You must be approved by your agent before you can fill out forms',
   },
   location: {
     stateNotFound: 'State with ID {{id}} not found',
     cityNotFound: 'City with ID {{id}} not found',
+  },
+  chain: {
+    notFound: 'Chain with ID {{id}} not found',
+    deletedSuccess: 'Chain deleted successfully',
   },
   form: {
     notFound: 'Form not found',

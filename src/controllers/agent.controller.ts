@@ -6,12 +6,14 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   Req,
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AgentService } from '../services/agent.service';
+import { FormService } from '../services/form.service';
 import {
   CreateAgentDto,
   UpdateAgentDto,
@@ -22,14 +24,19 @@ import {
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
-import { UpdateUserDto } from '../dto/user.dto';
+import { UpdateUserDto, ListMyUsersQueryDto, UpdateUserStatusDto } from '../dto/user.dto';
+import { SubmitResponseDto } from '../dto/form.dto';
+import { PresignUploadDto } from '../dto/form-upload.dto';
 import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
 import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
 
 @ApiTags('agents')
 @Controller('agents')
 export class AgentController {
-  constructor(private readonly agentService: AgentService) {}
+  constructor(
+    private readonly agentService: AgentService,
+    private readonly formService: FormService,
+  ) {}
 
   //////////////////////////////////////////////////////////////////////
   //                            Agent Apis                            //
@@ -94,8 +101,11 @@ export class AgentController {
   @UseInterceptors(AllRoleAuthInterceptor(['agent']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List users assigned to logged-in agent (Agent)' })
-  findMyUsers(@Req() req: AgentAuthenticatedRequest) {
-    return this.agentService.findMyUsers(req.agent.id);
+  findMyUsers(
+    @Req() req: AgentAuthenticatedRequest,
+    @Query() query: ListMyUsersQueryDto,
+  ) {
+    return this.agentService.findMyUsers(req.agent.id, query);
   }
 
   @Get('me/users/:id')
@@ -107,6 +117,41 @@ export class AgentController {
     @Param('id') id: string,
   ) {
     return this.agentService.findMyUserById(req.agent.id, id);
+  }
+
+  @Get('me/users/:id/approval-info')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get approval info for chain assignment (Agent)' })
+  getApprovalInfo(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.agentService.getApprovalInfo(req.agent.id, id);
+  }
+
+  @Get('me/chain-referrals')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get chain referrals for logged-in agent (Agent)' })
+  getMyChainReferrals(@Req() req: AgentAuthenticatedRequest) {
+    return this.agentService.getMyChainReferrals(req.agent.id);
+  }
+
+  @Patch('me/users/:id/status')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve or reject assigned user (Agent)' })
+  updateMyUserStatus(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateUserStatusDto: UpdateUserStatusDto,
+  ) {
+    return this.agentService.updateMyUserStatus(
+      req.agent.id,
+      id,
+      updateUserStatusDto,
+    );
   }
 
   @Patch('me/users/:id')
@@ -127,6 +172,103 @@ export class AgentController {
   @ApiOperation({ summary: 'Delete assigned user (Agent)' })
   removeMyUser(@Req() req: AgentAuthenticatedRequest, @Param('id') id: string) {
     return this.agentService.removeMyUser(req.agent.id, id);
+  }
+
+  @Get('me/users/:id/forms')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List user forms for assigned user (Agent)' })
+  findUserForms(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.formService.findAllForAssignedUser(req.agent.id, id);
+  }
+
+  @Get('me/users/:id/forms/:formId')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user form schema for assigned user (Agent)' })
+  findUserForm(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('formId') formId: string,
+  ) {
+    return this.formService.findOneForAssignedUser(req.agent.id, id, formId);
+  }
+
+  @Get('me/users/:id/forms/:formId/responses')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List user form responses for assigned user (Agent)' })
+  listUserFormResponses(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('formId') formId: string,
+  ) {
+    return this.formService.listResponsesForAssignedUser(
+      req.agent.id,
+      id,
+      formId,
+    );
+  }
+
+  @Post('me/users/:id/forms/:formId/responses')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @ApiOperation({ summary: 'Submit user form on behalf of assigned user (Agent)' })
+  submitUserFormResponse(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('formId') formId: string,
+    @Body() dto: SubmitResponseDto,
+  ) {
+    return this.formService.submitResponseForAssignedUser(
+      req.agent.id,
+      id,
+      formId,
+      dto,
+    );
+  }
+
+  @Post('me/users/:id/forms/:formId/uploads/presign')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @ApiOperation({ summary: 'Presign file upload for assigned user form (Agent)' })
+  presignUserFormUpload(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('formId') formId: string,
+    @Body() dto: PresignUploadDto,
+  ) {
+    return this.formService.presignUploadForAssignedUser(
+      req.agent.id,
+      id,
+      formId,
+      dto,
+    );
+  }
+
+  @Get('me/users/:id/forms/:formId/responses/:responseId/files/:fieldId/download')
+  @UseInterceptors(AllRoleAuthInterceptor(['agent']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Download file from assigned user form response (Agent)' })
+  getUserFormFileDownloadUrl(
+    @Req() req: AgentAuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('formId') formId: string,
+    @Param('responseId') responseId: string,
+    @Param('fieldId') fieldId: string,
+  ) {
+    return this.formService.getFileDownloadUrlForAssignedUser(
+      req.agent.id,
+      id,
+      formId,
+      responseId,
+      fieldId,
+    );
   }
 
   //////////////////////////////////////////////////////////////////////

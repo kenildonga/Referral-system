@@ -173,6 +173,7 @@ export class FormService {
     }
 
     this.assertSubmissionUserTypeAllowed(form, submitter.submitterType);
+
     return form;
   }
 
@@ -600,6 +601,301 @@ export class FormService {
       countMap.set(row.formId, Number(row.count));
     }
     return countMap;
+  }
+
+  async getUserFormStatsForUsers(
+    userIds: string[],
+  ): Promise<Map<string, { filled: number; total: number }>> {
+    const result = new Map<string, { filled: number; total: number }>();
+
+    const userForms = await this.formRepository.find({
+      where: {
+        isPublished: true,
+        submissionUserType: SubmissionUserType.USER,
+      },
+      select: { id: true },
+    });
+    const formIds = userForms.map((form) => form.id);
+    const total = formIds.length;
+
+    for (const userId of userIds) {
+      result.set(userId, { filled: 0, total });
+    }
+
+    if (userIds.length === 0 || formIds.length === 0) {
+      return result;
+    }
+
+    const rows = await this.responseRepository
+      .createQueryBuilder('response')
+      .select('response.submitterId', 'submitterId')
+      .addSelect('COUNT(DISTINCT response.formId)', 'count')
+      .where('response.submitterId IN (:...userIds)', { userIds })
+      .andWhere('response.submitterType = :submitterType', {
+        submitterType: SubmissionUserType.USER,
+      })
+      .andWhere('response.formId IN (:...formIds)', { formIds })
+      .groupBy('response.submitterId')
+      .getRawMany<{ submitterId: string; count: string }>();
+
+    for (const row of rows) {
+      const stats = result.get(row.submitterId);
+      if (stats) {
+        stats.filled = Number(row.count);
+      }
+    }
+
+    return result;
+  }
+
+  async findAllForAssignedUser(
+    agentId: string,
+    userId: string,
+  ): Promise<FormListItemDto[]> {
+    await this.assertAgentOwnsUser(agentId, userId);
+
+    const forms = await this.formRepository.find({
+      order: { updatedAt: 'DESC' },
+      where: {
+        submissionUserType: SubmissionUserType.USER,
+        isPublished: true,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        isPublished: true,
+        submissionUserType: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (forms.length === 0) {
+      return [];
+    }
+
+    const submittedRows = await this.responseRepository.find({
+      where: {
+        formId: In(forms.map((form) => form.id)),
+        submitterId: userId,
+        submitterType: SubmissionUserType.USER,
+      },
+      select: { formId: true },
+    });
+
+    const submittedFormIds = new Set(submittedRows.map((row) => row.formId));
+
+    return forms.map((form) => ({
+      ...form,
+      isSubmitted: submittedFormIds.has(form.id),
+      submittedCount: null,
+    }));
+  }
+
+  async findOneForAssignedUser(
+    agentId: string,
+    userId: string,
+    formId: string,
+  ): Promise<Form> {
+    await this.assertAgentOwnsUser(agentId, userId);
+    const form = await this.findFormOrFail(formId);
+
+    if (!form.isPublished) {
+      throw new BadRequestException('form.notPublished');
+    }
+
+    if (form.submissionUserType !== SubmissionUserType.USER) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+
+    return form;
+  }
+
+  async listResponsesForAssignedUser(
+    agentId: string,
+    userId: string,
+    formId: string,
+  ): Promise<FormResponseListItemDto[]> {
+    await this.assertAgentOwnsUser(agentId, userId);
+    const form = await this.findFormOrFail(formId);
+
+    if (form.submissionUserType !== SubmissionUserType.USER) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+
+    const responses = await this.responseRepository.find({
+      where: {
+        formId,
+        submitterId: userId,
+        submitterType: SubmissionUserType.USER,
+      },
+      order: { submittedAt: 'DESC' },
+    });
+
+    const submitterMap = await this.buildSubmitterMap(responses);
+
+    return responses.map((response) => {
+      const submitterKey = `${SubmissionUserType.USER}:${userId}`;
+      const submitter =
+        submitterMap.get(submitterKey) ?? {
+          id: userId,
+          type: SubmissionUserType.USER,
+          name: null,
+          phoneNumber: null,
+        };
+
+      return {
+        id: response.id,
+        formId: response.formId,
+        submitterId: response.submitterId,
+        submitterType: response.submitterType,
+        submitter,
+        answers: response.answers,
+        submittedAt: response.submittedAt,
+      };
+    });
+  }
+
+  async submitResponseForAssignedUser(
+    agentId: string,
+    userId: string,
+    formId: string,
+    dto: SubmitResponseDto,
+  ): Promise<FormResponse> {
+    await this.assertAgentOwnsUser(agentId, userId);
+
+    const form = await this.findFormOrFail(formId);
+
+    if (!form.isPublished) {
+      throw new BadRequestException('form.notPublished');
+    }
+
+    if (form.submissionUserType !== SubmissionUserType.USER) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+
+    this.assertAnswersMatchSchema(
+      form.fields as FormFieldDto[],
+      dto.answers,
+      formId,
+    );
+
+    const existingResponse = await this.responseRepository.findOne({
+      where: {
+        formId,
+        submitterId: userId,
+        submitterType: SubmissionUserType.USER,
+      },
+      order: { submittedAt: 'DESC' },
+    });
+
+    if (existingResponse) {
+      const previousAnswers = existingResponse.answers;
+      existingResponse.answers = dto.answers;
+      const savedResponse =
+        await this.responseRepository.save(existingResponse);
+      void this.deleteRemovedResponseFiles(previousAnswers, dto.answers);
+      return savedResponse;
+    }
+
+    const response = this.responseRepository.create({
+      formId,
+      submitterId: userId,
+      submitterType: SubmissionUserType.USER,
+      answers: dto.answers,
+    });
+
+    return this.responseRepository.save(response);
+  }
+
+  async presignUploadForAssignedUser(
+    agentId: string,
+    userId: string,
+    formId: string,
+    dto: PresignUploadDto,
+  ): Promise<{
+    uploadUrl: string;
+    key: string;
+    url: string;
+    expiresIn: number;
+  }> {
+    await this.assertAgentOwnsUser(agentId, userId);
+
+    const form = await this.findFormOrFail(formId);
+    if (!form.isPublished) {
+      throw new BadRequestException('form.notPublished');
+    }
+
+    if (form.submissionUserType !== SubmissionUserType.USER) {
+      throw new BadRequestException('form.invalidSubmissionUserType');
+    }
+
+    this.assertFileUploadAllowed(form, dto.fieldId, dto.contentType, dto.size);
+
+    const key = this.s3Service.buildObjectKey(
+      formId,
+      dto.fieldId,
+      dto.fileName,
+    );
+    const uploadUrl = await this.s3Service.getUploadPresignedUrl(
+      key,
+      dto.contentType,
+    );
+
+    return {
+      uploadUrl,
+      key,
+      url: this.s3Service.buildObjectUrl(key),
+      expiresIn: 300,
+    };
+  }
+
+  async getFileDownloadUrlForAssignedUser(
+    agentId: string,
+    userId: string,
+    formId: string,
+    responseId: string,
+    fieldId: string,
+  ): Promise<{ downloadUrl: string; expiresIn: number }> {
+    await this.assertAgentOwnsUser(agentId, userId);
+
+    const response = await this.findResponseOrFail(formId, responseId);
+    if (
+      response.submitterId !== userId ||
+      response.submitterType !== SubmissionUserType.USER
+    ) {
+      throw new ForbiddenException('auth.notAuthorized');
+    }
+
+    const fileMeta = response.answers[fieldId];
+
+    if (
+      !fileMeta ||
+      typeof fileMeta !== 'object' ||
+      !('key' in fileMeta) ||
+      typeof fileMeta.key !== 'string'
+    ) {
+      throw new NotFoundException('form.fileNotFound');
+    }
+
+    const downloadUrl = await this.s3Service.getDownloadPresignedUrl(
+      fileMeta.key,
+    );
+    return { downloadUrl, expiresIn: 3600 };
+  }
+
+  private async assertAgentOwnsUser(
+    agentId: string,
+    userId: string,
+  ): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId, agentId },
+    });
+    if (!user) {
+      throw new NotFoundException(this.i18n.t('user.notFound', { id: userId }));
+    }
+    return user;
   }
 
   private async buildSubmitterMap(

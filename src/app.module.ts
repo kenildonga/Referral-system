@@ -11,7 +11,10 @@ import { City } from './entities/cities.entity';
 import { Form } from './entities/forms.entity';
 import { FormResponse } from './entities/form-responses.entity';
 import { PasswordResetOtp } from './entities/password-reset-otp.entity';
+import { Chain } from './entities/chains.entity';
+import { ChainReferral } from './entities/chain-referrals.entity';
 import { AdminController } from './controllers/admin.controller';
+import { ChainController } from './controllers/chain.controller';
 import { AgentController } from './controllers/agent.controller';
 import { FormController } from './controllers/form.controller';
 import { UserController } from './controllers/user.controller';
@@ -21,6 +24,7 @@ import { AgentService } from './services/agent.service';
 import { FormService } from './services/form.service';
 import { UserService } from './services/user.service';
 import { IndexService } from './services/index.service';
+import { ChainService } from './services/chain.service';
 import { I18nModule } from './i18n/i18n.module';
 import { CommonModule } from './common/common.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -62,6 +66,8 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       PasswordResetOtp,
       Form,
       FormResponse,
+      Chain,
+      ChainReferral,
     ]),
   ],
   controllers: [
@@ -70,6 +76,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     FormController,
     UserController,
     IndexController,
+    ChainController,
   ],
   providers: [
     AdminService,
@@ -77,6 +84,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     FormService,
     UserService,
     IndexService,
+    ChainService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

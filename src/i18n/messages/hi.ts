@@ -47,10 +47,23 @@ export const hiMessages: MessageTree = {
     agentInactive: 'चयनित एजेंट सक्रिय नहीं है',
     agentLocationMismatch:
       'चयनित एजेंट प्रदान किए गए राज्य और शहर से मेल नहीं खाता',
+    noteRequiredForRejection: 'उपयोगकर्ता को अस्वीकार करते समय अस्वीकृति नोट आवश्यक है',
+    invalidStatusTransition: 'अमान्य स्थिति परिवर्तन',
+    invalidReferralCode: 'रेफरल कोड अमान्य है या नहीं मिला',
+    referralCodeGenerationFailed: 'अद्वितीय रेफरल कोड बनाने में विफल',
+    approvedSuccess: 'उपयोगकर्ता सफलतापूर्वक स्वीकृत',
+    rejectedSuccess: 'उपयोगकर्ता सफलतापूर्वक अस्वीकृत',
+    chainIdRequiredForApproval: 'इस उपयोगकर्ता को स्वीकृत करने के लिए एक चेन चुनना आवश्यक है',
+    notApprovedForForms:
+      'फॉर्म भरने से पहले आपको अपने एजेंट द्वारा स्वीकृत होना आवश्यक है',
   },
   location: {
     stateNotFound: 'आईडी {{id}} वाला राज्य नहीं मिला',
     cityNotFound: 'आईडी {{id}} वाला शहर नहीं मिला',
+  },
+  chain: {
+    notFound: 'आईडी {{id}} वाली चेन नहीं मिली',
+    deletedSuccess: 'चेन सफलतापूर्वक हटाई गई',
   },
   form: {
     notFound: 'फ़ॉर्म नहीं मिला',

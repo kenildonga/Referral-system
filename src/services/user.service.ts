@@ -19,8 +19,9 @@ import {
   LoginUserDto,
 } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
+import { UserStatus } from '../entities/enum';
 
-type SafeUser = Omit<User, 'agent' | 'password' | 'tokenVersion'>;
+type SafeUser = Omit<User, 'agent' | 'password' | 'tokenVersion' | 'referredBy'>;
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 
@@ -39,6 +40,25 @@ export class UserService {
   ) {}
 
   async fillForm(dto: FillUserFormDto): Promise<SafeUser> {
+    let referredByUserId: string | null = null;
+    const incomingReferralCode = dto.referralCode?.trim().toUpperCase();
+
+    if (incomingReferralCode) {
+      const referrer = await this.userRepository.findOne({
+        where: {
+          referralCode: incomingReferralCode,
+          status: UserStatus.APPROVED,
+        },
+        select: { id: true },
+      });
+
+      if (!referrer) {
+        throw new BadRequestException('user.invalidReferralCode');
+      }
+
+      referredByUserId = referrer.id;
+    }
+
     const user = this.userRepository.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
@@ -46,6 +66,7 @@ export class UserService {
       email: dto.email,
       password: await this.hashPassword(dto.password),
       agentId: null,
+      referredByUserId,
     });
 
     const saved = await this.userRepository.save(user);
@@ -78,6 +99,14 @@ export class UserService {
   async logout(userId: string): Promise<{ message: string }> {
     await this.incrementTokenVersion(userId);
     return { message: this.i18n.t('auth.logoutSuccess') };
+  }
+
+  async findMe(userId: string): Promise<SafeUser> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException(this.i18n.t('user.notFound', { id: userId }));
+    }
+    return this.toSafeUser(user);
   }
 
   async findAgentsByLocation(query: ListAgentsQueryDto): Promise<SafeAgent[]> {
@@ -163,7 +192,7 @@ export class UserService {
   }
 
   private toSafeUser(user: User): SafeUser {
-    const { agent, password, tokenVersion, ...safeUser } = user;
+    const { agent, password, tokenVersion, referredBy, ...safeUser } = user;
     return safeUser;
   }
 

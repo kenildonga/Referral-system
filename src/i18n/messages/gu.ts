@@ -47,10 +47,23 @@ export const guMessages: MessageTree = {
     agentInactive: 'પસંદ કરેલ એજન્ટ સક્રિય નથી',
     agentLocationMismatch:
       'પસંદ કરેલ એજન્ટ આપેલા રાજ્ય અને શહેર સાથે મેળ ખાતો નથી',
+    noteRequiredForRejection: 'વપરાશકર્તાને નકારતી વખતે નકારણ નોંધ જરૂરી છે',
+    invalidStatusTransition: 'અમાન્ય સ્થિતિ બદલાવ',
+    invalidReferralCode: 'રેફરલ કોડ અમાન્ય છે અથવા મળ્યો નથી',
+    referralCodeGenerationFailed: 'અનન્ય રેફરલ કોડ બનાવવામાં નિષ્ફળ',
+    approvedSuccess: 'વપરાશકર્તા સફળતાપૂર્વક મંજૂર',
+    rejectedSuccess: 'વપરાશકર્તા સફળતાપૂર્વક નકાર્યો',
+    chainIdRequiredForApproval: 'આ વપરાશકર્તાને મંજૂર કરવા માટે ચેઈન પસંદ કરવું આવશ્યક છે',
+    notApprovedForForms:
+      'ફોર્મ ભરતા પહેલા તમારા એજન્ટ દ્વારા મંજૂર થવું જરૂરી છે',
   },
   location: {
     stateNotFound: 'આઈડી {{id}} સાથેનું રાજ્ય મળ્યું નથી',
     cityNotFound: 'આઈડી {{id}} સાથેનું શહેર મળ્યું નથી',
+  },
+  chain: {
+    notFound: 'આઈડી {{id}} સાથેની ચેઇન મળી નથી',
+    deletedSuccess: 'ચેઇન સફળતાપૂર્વક કાઢી નાખી',
   },
   form: {
     notFound: 'ફોર્મ મળ્યો નથી',

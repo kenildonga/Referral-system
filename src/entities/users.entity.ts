@@ -8,6 +8,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Agent } from './agents.entity';
+import { UserStatus } from './enum';
 
 @Entity('users')
 export class User {
@@ -38,6 +39,26 @@ export class User {
 
   @Column({ type: 'int', default: 0 })
   tokenVersion: number;
+
+  @Column({
+    type: 'enum',
+    enum: UserStatus,
+    default: UserStatus.PENDING,
+  })
+  status: UserStatus;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  note: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null, unique: true })
+  referralCode: string | null;
+
+  @Column({ type: 'uuid', nullable: true, default: null })
+  referredByUserId: string | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'referredByUserId' })
+  referredBy: User | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

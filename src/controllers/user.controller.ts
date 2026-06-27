@@ -42,6 +42,14 @@ export class UserController {
     return this.userService.logout(req.user.id);
   }
 
+  @Get('me')
+  @UseInterceptors(AllRoleAuthInterceptor(['user']))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get own profile (User)' })
+  findMe(@Req() req: UserAuthenticatedRequest) {
+    return this.userService.findMe(req.user.id);
+  }
+
   @Post()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Fill user referral form' })

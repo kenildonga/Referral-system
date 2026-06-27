@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsSelect } from 'typeorm';
@@ -10,6 +11,11 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { Agent } from '../entities/agents.entity';
 import { User } from '../entities/users.entity';
+import { Chain } from '../entities/chains.entity';
+import {
+  ChainReferral,
+  ChainAssignType,
+} from '../entities/chain-referrals.entity';
 import {
   CreateAgentDto,
   UpdateAgentDto,
@@ -19,11 +25,18 @@ import {
   SignUpAgentDto,
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
-import { UpdateUserDto } from '../dto/user.dto';
+import { UpdateUserDto, UpdateUserStatusDto, ListMyUsersQueryDto } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
+import { UserStatus } from '../entities/enum';
+import { FormService } from './form.service';
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
-type SafeUser = Omit<User, 'agent' | 'password'>;
+type SafeUser = Omit<User, 'agent' | 'password' | 'referredBy'>;
+type SafeUserResponse = SafeUser & { referredByName: string | null };
+type UserWithFormStats = SafeUserResponse & {
+  filledFormsCount: number;
+  totalFormsCount: number;
+};
 
 const SAFE_USER_SELECT: FindOptionsSelect<User> = {
   id: true,
@@ -32,6 +45,10 @@ const SAFE_USER_SELECT: FindOptionsSelect<User> = {
   lastName: true,
   phoneNumber: true,
   email: true,
+  status: true,
+  note: true,
+  referralCode: true,
+  referredByUserId: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -53,7 +70,9 @@ const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
 };
 
 const AGENT_LOGIN_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const REFERRAL_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const MAX_LOGIN_ID_RETRIES = 5;
+const MAX_REFERRAL_CODE_RETRIES = 5;
 
 @Injectable()
 export class AgentService {
@@ -62,6 +81,11 @@ export class AgentService {
     private readonly agentRepository: Repository<Agent>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Chain)
+    private readonly chainRepository: Repository<Chain>,
+    @InjectRepository(ChainReferral)
+    private readonly chainReferralRepository: Repository<ChainReferral>,
+    private readonly formService: FormService,
     private readonly i18n: I18nService,
   ) {}
 
@@ -173,25 +197,80 @@ export class AgentService {
     return this.update(agentId, updateAgentProfileDto);
   }
 
-  async findMyUsers(agentId: string): Promise<SafeUser[]> {
+  async findMyUsers(
+    agentId: string,
+    query?: ListMyUsersQueryDto,
+  ): Promise<UserWithFormStats[]> {
     const users = await this.userRepository.find({
-      where: { agentId },
+      where: {
+        agentId,
+        ...(query?.status !== undefined ? { status: query.status } : {}),
+      },
       select: SAFE_USER_SELECT,
+      relations: { referredBy: true },
       order: { createdAt: 'DESC' },
     });
-    return users.map((user) => this.toSafeUser(user));
+
+    const userIds = users.map((user) => user.id);
+    const formStats = await this.formService.getUserFormStatsForUsers(userIds);
+
+    return users.map((user) => {
+      const stats = formStats.get(user.id) ?? { filled: 0, total: 0 };
+      return {
+        ...this.toSafeUserResponse(user),
+        filledFormsCount: stats.filled,
+        totalFormsCount: stats.total,
+      };
+    });
   }
 
-  async findMyUserById(agentId: string, userId: string): Promise<SafeUser> {
+  async findMyUserById(agentId: string, userId: string): Promise<SafeUserResponse> {
+    const user = await this.findAssignedUserOrFail(agentId, userId, {
+      loadReferrer: true,
+    });
+    return this.toSafeUserResponse(user);
+  }
+
+  async getApprovalInfo(
+    agentId: string,
+    userId: string,
+  ): Promise<{
+    requiresChainSelection: boolean;
+    suggestedChainId: string | null;
+    chains: Chain[];
+  }> {
     const user = await this.findAssignedUserOrFail(agentId, userId);
-    return this.toSafeUser(user);
+    const chains = await this.chainRepository.find({ order: { name: 'ASC' } });
+
+    if (!user.referredByUserId) {
+      return { requiresChainSelection: true, suggestedChainId: null, chains };
+    }
+
+    const referrerChainReferral = await this.chainReferralRepository.findOne({
+      where: { userId: user.referredByUserId },
+    });
+
+    if (!referrerChainReferral) {
+      return { requiresChainSelection: true, suggestedChainId: null, chains };
+    }
+
+    const latestInChain = await this.chainReferralRepository.findOne({
+      where: { chainId: referrerChainReferral.chainId },
+      order: { position: 'DESC' },
+    });
+
+    if (latestInChain && latestInChain.userId === user.referredByUserId) {
+      return { requiresChainSelection: false, suggestedChainId: referrerChainReferral.chainId, chains };
+    }
+
+    return { requiresChainSelection: true, suggestedChainId: referrerChainReferral.chainId, chains };
   }
 
   async updateMyUser(
     agentId: string,
     userId: string,
     updateUserDto: UpdateUserDto,
-  ): Promise<SafeUser> {
+  ): Promise<SafeUserResponse> {
     const user = await this.findAssignedUserOrFail(agentId, userId);
 
     if (updateUserDto.firstName !== undefined) {
@@ -235,7 +314,7 @@ export class AgentService {
     }
 
     const saved = await this.userRepository.save(user);
-    return this.toSafeUser(saved);
+    return this.toSafeUserResponse(saved);
   }
 
   async removeMyUser(
@@ -245,6 +324,180 @@ export class AgentService {
     const user = await this.findAssignedUserOrFail(agentId, userId);
     await this.userRepository.remove(user);
     return { message: this.i18n.t('user.deletedSuccess') };
+  }
+
+  async updateMyUserStatus(
+    agentId: string,
+    userId: string,
+    dto: UpdateUserStatusDto,
+  ): Promise<SafeUserResponse> {
+    const user = await this.findAssignedUserOrFail(agentId, userId);
+
+    if (dto.status === UserStatus.APPROVED) {
+      user.status = UserStatus.APPROVED;
+      user.note = null;
+      if (!user.referralCode) {
+        user.referralCode = await this.generateUniqueReferralCode();
+      }
+
+      const saved = await this.userRepository.save(user);
+      await this.assignChainOnApproval(agentId, saved, dto.chainId ?? null);
+      return this.toSafeUserResponse(saved);
+    } else if (dto.status === UserStatus.REJECTED) {
+      if (!dto.note?.trim()) {
+        throw new BadRequestException('user.noteRequiredForRejection');
+      }
+      user.status = UserStatus.REJECTED;
+      user.note = dto.note.trim();
+    } else {
+      throw new BadRequestException('user.invalidStatusTransition');
+    }
+
+    const saved = await this.userRepository.save(user);
+    return this.toSafeUserResponse(saved);
+  }
+
+  private async assignChainOnApproval(
+    agentId: string,
+    user: User,
+    chainIdFromDto: string | null,
+  ): Promise<void> {
+    if (!user.referredByUserId) {
+      if (!chainIdFromDto) {
+        throw new BadRequestException('user.chainIdRequiredForApproval');
+      }
+      await this.validateChainExists(chainIdFromDto);
+      const position = await this.getNextPosition(chainIdFromDto);
+      await this.chainReferralRepository.save(
+        this.chainReferralRepository.create({
+          chainId: chainIdFromDto,
+          agentId,
+          userId: user.id,
+          position,
+          assignType: ChainAssignType.MANUAL,
+        }),
+      );
+      return;
+    }
+
+    const referrerChainReferral = await this.chainReferralRepository.findOne({
+      where: { userId: user.referredByUserId },
+    });
+
+    if (!referrerChainReferral) {
+      if (!chainIdFromDto) {
+        throw new BadRequestException('user.chainIdRequiredForApproval');
+      }
+      await this.validateChainExists(chainIdFromDto);
+      const position = await this.getNextPosition(chainIdFromDto);
+      await this.chainReferralRepository.save(
+        this.chainReferralRepository.create({
+          chainId: chainIdFromDto,
+          agentId,
+          userId: user.id,
+          position,
+          assignType: ChainAssignType.MANUAL,
+        }),
+      );
+      return;
+    }
+
+    const latestInChain = await this.chainReferralRepository.findOne({
+      where: { chainId: referrerChainReferral.chainId },
+      order: { position: 'DESC' },
+    });
+
+    if (latestInChain && latestInChain.userId === user.referredByUserId) {
+      const position = referrerChainReferral.position + 1;
+      await this.chainReferralRepository.save(
+        this.chainReferralRepository.create({
+          chainId: referrerChainReferral.chainId,
+          agentId,
+          userId: user.id,
+          position,
+          assignType: ChainAssignType.AUTO,
+        }),
+      );
+      return;
+    }
+
+    if (!chainIdFromDto) {
+      throw new BadRequestException('user.chainIdRequiredForApproval');
+    }
+    await this.validateChainExists(chainIdFromDto);
+    const position = await this.getNextPosition(chainIdFromDto);
+    const assignType =
+      chainIdFromDto === referrerChainReferral.chainId
+        ? ChainAssignType.AUTO
+        : ChainAssignType.MANUAL;
+    await this.chainReferralRepository.save(
+      this.chainReferralRepository.create({
+        chainId: chainIdFromDto,
+        agentId,
+        userId: user.id,
+        position,
+        assignType,
+      }),
+    );
+  }
+
+  private async validateChainExists(chainId: string): Promise<void> {
+    const chain = await this.chainRepository.findOne({
+      where: { id: chainId },
+      select: { id: true },
+    });
+    if (!chain) {
+      throw new NotFoundException(this.i18n.t('chain.notFound', { id: chainId }));
+    }
+  }
+
+  private async getNextPosition(chainId: string): Promise<number> {
+    const latest = await this.chainReferralRepository.findOne({
+      where: { chainId },
+      order: { position: 'DESC' },
+      select: { position: true },
+    });
+    return latest ? latest.position + 1 : 1;
+  }
+
+  async getMyChainReferrals(agentId: string) {
+    const referrals = await this.chainReferralRepository.find({
+      where: { agentId },
+      relations: { chain: true, user: { referredBy: true } },
+      order: { position: 'ASC' },
+    });
+
+    const chainMap = new Map<string, { id: string; name: string; users: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      position: number;
+      assignType: string;
+      referredByName: string | null;
+    }> }>();
+
+    for (const ref of referrals) {
+      if (!chainMap.has(ref.chainId)) {
+        chainMap.set(ref.chainId, {
+          id: ref.chain.id,
+          name: ref.chain.name,
+          users: [],
+        });
+      }
+      const referredByName = ref.user.referredBy
+        ? `${ref.user.referredBy.firstName} ${ref.user.referredBy.lastName}`.trim()
+        : null;
+      chainMap.get(ref.chainId)!.users.push({
+        id: ref.user.id,
+        firstName: ref.user.firstName,
+        lastName: ref.user.lastName,
+        position: ref.position,
+        assignType: ref.assignType,
+        referredByName,
+      });
+    }
+
+    return { chains: Array.from(chainMap.values()) };
   }
 
   // --- Admin Management ---
@@ -403,6 +656,30 @@ export class AgentService {
     return agent;
   }
 
+  private async generateUniqueReferralCode(): Promise<string> {
+    for (let attempt = 0; attempt < MAX_REFERRAL_CODE_RETRIES; attempt++) {
+      const referralCode = `REF${this.randomReferralChars(6)}`;
+      const existing = await this.userRepository.findOne({
+        where: { referralCode },
+        select: { id: true },
+      });
+      if (!existing) {
+        return referralCode;
+      }
+    }
+    throw new ConflictException('user.referralCodeGenerationFailed');
+  }
+
+  private randomReferralChars(length: number): string {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += REFERRAL_CODE_CHARS.charAt(
+        Math.floor(Math.random() * REFERRAL_CODE_CHARS.length),
+      );
+    }
+    return result;
+  }
+
   private async generateUniqueAgentLoginId(): Promise<string> {
     for (let attempt = 0; attempt < MAX_LOGIN_ID_RETRIES; attempt++) {
       const agentLoginId = `AGT-${this.randomChars(6)}`;
@@ -484,9 +761,11 @@ export class AgentService {
   private async findAssignedUserOrFail(
     agentId: string,
     userId: string,
+    options?: { loadReferrer?: boolean },
   ): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id: userId, agentId },
+      ...(options?.loadReferrer ? { relations: { referredBy: true } } : {}),
     });
     if (!user) {
       throw new NotFoundException(this.i18n.t('user.notFound', { id: userId }));
@@ -499,8 +778,11 @@ export class AgentService {
     return safeAgent;
   }
 
-  private toSafeUser(user: User): SafeUser {
-    const { agent, password, ...safeUser } = user;
-    return safeUser;
+  private toSafeUserResponse(user: User): SafeUserResponse {
+    const { agent, password, referredBy, ...safeUser } = user;
+    const referredByName = referredBy
+      ? `${referredBy.firstName} ${referredBy.lastName}`.trim()
+      : null;
+    return { ...safeUser, referredByName };
   }
 }

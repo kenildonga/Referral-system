@@ -12,6 +12,10 @@ import { Form } from '../entities/forms.entity';
 import { FormResponse } from '../entities/form-responses.entity';
 import { SubmissionUserType } from '../entities/enum';
 import { User } from '../entities/users.entity';
+import { formatPersonName } from '../common/utils/name.util';
+import {
+  assertValidDateAnswer,
+} from '../common/utils/dateBounds.util';
 import {
   CreateFormDto,
   FormListItemDto,
@@ -422,6 +426,18 @@ export class FormService {
 
       if (required && (value === undefined || value === null || value === '')) {
         throw new BadRequestException('form.requiredFieldMissing');
+      }
+
+      if (
+        field.type === 'date' &&
+        typeof value === 'string' &&
+        value !== ''
+      ) {
+        try {
+          assertValidDateAnswer(value, field.validation);
+        } catch {
+          throw new BadRequestException('form.invalidDateValue');
+        }
       }
 
       if (
@@ -923,6 +939,7 @@ export class FormService {
         select: {
           id: true,
           firstName: true,
+          middleName: true,
           lastName: true,
           phoneNumber: true,
         },
@@ -932,7 +949,7 @@ export class FormService {
         submitterMap.set(`${SubmissionUserType.AGENT}:${agent.id}`, {
           id: agent.id,
           type: SubmissionUserType.AGENT,
-          name: `${agent.firstName} ${agent.lastName}`.trim(),
+          name: formatPersonName(agent),
           phoneNumber: agent.phoneNumber ?? null,
         });
       }
@@ -944,6 +961,7 @@ export class FormService {
         select: {
           id: true,
           firstName: true,
+          middleName: true,
           lastName: true,
           phoneNumber: true,
         },
@@ -953,7 +971,7 @@ export class FormService {
         submitterMap.set(`${SubmissionUserType.USER}:${user.id}`, {
           id: user.id,
           type: SubmissionUserType.USER,
-          name: `${user.firstName} ${user.lastName}`.trim(),
+          name: formatPersonName(user),
           phoneNumber: user.phoneNumber ?? null,
         });
       }

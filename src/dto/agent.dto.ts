@@ -7,6 +7,7 @@ export const CreateAgentSchema = z.object({
     .string()
     .min(1, 'validation.firstName.required')
     .max(255, 'validation.firstName.maxLength'),
+  middleName: z.string().max(255, 'validation.middleName.maxLength').optional(),
   lastName: z
     .string()
     .min(1, 'validation.lastName.required')
@@ -27,6 +28,7 @@ export const UpdateAgentSchema = z
       .min(1, 'validation.firstName.required')
       .max(255, 'validation.firstName.maxLength')
       .optional(),
+    middleName: z.string().max(255, 'validation.middleName.maxLength').optional(),
     lastName: z
       .string()
       .min(1, 'validation.lastName.required')
@@ -58,24 +60,50 @@ export const ChangeAgentPasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
-export const SignUpAgentSchema = z.object({
-  firstName: z
+export const SignUpAgentSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(1, 'validation.firstName.required')
+      .max(255, 'validation.firstName.maxLength'),
+    middleName: z.string().max(255, 'validation.middleName.maxLength').optional(),
+    lastName: z
+      .string()
+      .min(1, 'validation.lastName.required')
+      .max(255, 'validation.lastName.maxLength'),
+    phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+    email: z
+      .string()
+      .min(1, 'validation.email.required')
+      .email('validation.email.invalid')
+      .max(255),
+    state: z.string().min(1, 'validation.state.required').max(100),
+    city: z.string().min(1, 'validation.city.required').max(100),
+    password: passwordSchema,
+    accountHolderName: z
+      .string()
+      .min(1, 'validation.accountHolderName.required')
+      .max(255),
+    accountNumber: z
+      .string()
+      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
+    confirmAccountNumber: z
+      .string()
+      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
+    ifscCode: z
+      .string()
+      .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/i, 'validation.ifscCode.invalid'),
+    otp: z.string().length(4, 'validation.otp.invalid'),
+  })
+  .refine((data) => data.confirmAccountNumber === data.accountNumber, {
+    message: 'validation.accountNumber.mismatch',
+    path: ['confirmAccountNumber'],
+  });
+
+export const SendAgentRegistrationOtpSchema = z.object({
+  phoneNumber: z
     .string()
-    .min(1, 'validation.firstName.required')
-    .max(255, 'validation.firstName.maxLength'),
-  lastName: z
-    .string()
-    .min(1, 'validation.lastName.required')
-    .max(255, 'validation.lastName.maxLength'),
-  phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
-  email: z
-    .string()
-    .min(1, 'validation.email.required')
-    .email('validation.email.invalid')
-    .max(255),
-  state: z.string().min(1, 'validation.state.required').max(100),
-  city: z.string().min(1, 'validation.city.required').max(100),
-  password: passwordSchema,
+    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
 });
 
 export const UpdateAgentProfileSchema = z
@@ -85,6 +113,7 @@ export const UpdateAgentProfileSchema = z
       .min(1, 'validation.firstName.required')
       .max(255, 'validation.firstName.maxLength')
       .optional(),
+    middleName: z.string().max(255, 'validation.middleName.maxLength').optional(),
     lastName: z
       .string()
       .min(1, 'validation.lastName.required')
@@ -127,6 +156,13 @@ export interface ChangeAgentPasswordDto extends z.infer<
 
 export class SignUpAgentDto extends createZodDto(SignUpAgentSchema) {}
 export interface SignUpAgentDto extends z.infer<typeof SignUpAgentSchema> {}
+
+export class SendAgentRegistrationOtpDto extends createZodDto(
+  SendAgentRegistrationOtpSchema,
+) {}
+export interface SendAgentRegistrationOtpDto extends z.infer<
+  typeof SendAgentRegistrationOtpSchema
+> {}
 
 export class UpdateAgentProfileDto extends createZodDto(
   UpdateAgentProfileSchema,

@@ -25,6 +25,9 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   firstName: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  middleName: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   lastName: string;
 
@@ -59,6 +62,30 @@ export class User {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn({ name: 'referredByUserId' })
   referredBy: User | null;
+
+  @Column({ type: 'date', nullable: true, default: null })
+  dateOfBirth: Date | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  addressLine1: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  addressLine2: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  landmark: string | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  postalCode: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  isMarried: boolean;
+
+  @Column({ type: 'date', nullable: true, default: null })
+  marriageDate: Date | null;
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  phoneVerifiedAt: Date | null;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

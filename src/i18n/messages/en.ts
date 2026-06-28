@@ -101,6 +101,9 @@ export const enMessages = {
       required: 'Last name is required',
       maxLength: 'Last name must be at most 255 characters',
     },
+    middleName: {
+      maxLength: 'Middle name must be at most 255 characters',
+    },
     phoneNumber: {
       invalid: 'Phone number must be exactly 10 digits with no country code',
       required: 'Phone number is required',

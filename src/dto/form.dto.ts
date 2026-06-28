@@ -2,11 +2,19 @@ import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SubmissionUserType } from '../entities/enum';
 
+const isoDateString = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'validation.date.invalidFormat');
+
 const FieldValidationSchema = z.object({
   required: z.boolean().optional(),
   minLength: z.number().int().min(0).optional(),
   maxLength: z.number().int().min(0).optional(),
   pattern: z.string().optional(),
+  minDate: isoDateString.optional(),
+  maxDate: isoDateString.optional(),
+  onlyFuture: z.boolean().optional(),
+  onlyPast: z.boolean().optional(),
   allowedFileTypes: z.array(z.string()).optional(),
   maxFileSizeMB: z.number().positive().optional(),
   errorMessage: z.string().optional(),
@@ -15,6 +23,7 @@ const FieldValidationSchema = z.object({
 const FieldTypeSchema = z.enum([
   'text',
   'textarea',
+  'date',
   'dropdown',
   'multi_dropdown',
   'radio',

@@ -23,6 +23,9 @@ export class Agent {
   @Column({ type: 'varchar', length: 255 })
   firstName: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  middleName: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   lastName: string;
 
@@ -46,6 +49,9 @@ export class Agent {
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   city: string | null;
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  phoneVerifiedAt: Date | null;
 
   @Column({ type: 'uuid', nullable: true })
   createdById: string | null;

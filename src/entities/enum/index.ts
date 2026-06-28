@@ -13,3 +13,8 @@ export enum UserStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
 }
+
+export enum BankHolderType {
+  USER = 'user',
+  AGENT = 'agent',
+}

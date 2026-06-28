@@ -14,6 +14,7 @@ import { Throttle } from '@nestjs/throttler';
 import { UserService } from '../services/user.service';
 import {
   FillUserFormDto,
+  SendRegistrationOtpDto,
   UpdateUserAgentDto,
   ListAgentsQueryDto,
   LoginUserDto,
@@ -48,6 +49,13 @@ export class UserController {
   @ApiOperation({ summary: 'Get own profile (User)' })
   findMe(@Req() req: UserAuthenticatedRequest) {
     return this.userService.findMe(req.user.id);
+  }
+
+  @Post('register/send-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Send registration OTP to phone' })
+  sendRegistrationOtp(@Body() dto: SendRegistrationOtpDto) {
+    return this.userService.sendRegistrationOtp(dto);
   }
 
   @Post()

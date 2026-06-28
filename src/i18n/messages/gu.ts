@@ -104,6 +104,9 @@ export const guMessages: MessageTree = {
       required: 'છેલ્લું નામ જરૂરી છે',
       maxLength: 'છેલ્લું નામ વધુમાં વધુ 255 અક્ષરોનું હોઈ શકે છે',
     },
+    middleName: {
+      maxLength: 'મધ્ય નામ વધુમાં વધુ 255 અક્ષરોનું હોઈ શકે છે',
+    },
     phoneNumber: {
       invalid: 'ફોન નંબર દેશ કોડ વગર ચોક્કસ 10 અંકનો હોવો જોઈએ',
       required: 'ફોન નંબર જરૂરી છે',

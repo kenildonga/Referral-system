@@ -14,12 +14,16 @@ import { State } from '../entities/states.entity';
 import { City } from '../entities/cities.entity';
 import {
   FillUserFormDto,
+  SendRegistrationOtpDto,
   UpdateUserAgentDto,
   ListAgentsQueryDto,
   LoginUserDto,
 } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
-import { UserStatus } from '../entities/enum';
+import { UserStatus, BankHolderType } from '../entities/enum';
+import { normalizeMiddleName } from '../common/utils/name.util';
+import { OtpService } from '../common/helpers/otp.service';
+import { BankDetailsService } from './bank-details.service';
 
 type SafeUser = Omit<User, 'agent' | 'password' | 'tokenVersion' | 'referredBy'>;
 
@@ -37,9 +41,39 @@ export class UserService {
     @InjectRepository(City)
     private readonly cityRepository: Repository<City>,
     private readonly i18n: I18nService,
+    private readonly otpService: OtpService,
+    private readonly bankDetailsService: BankDetailsService,
   ) {}
 
+  async sendRegistrationOtp(dto: SendRegistrationOtpDto): Promise<{ message: string }> {
+    await this.assertPhoneAvailableForRegistration(dto.phoneNumber);
+    await this.otpService.issuePhoneOtp(dto.phoneNumber);
+    return { message: 'OTP sent successfully' };
+  }
+
+  private async assertPhoneAvailableForRegistration(phoneNumber: string): Promise<void> {
+    const existingUser = await this.userRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingUser) {
+      throw new BadRequestException('user.phoneNumberAlreadyExists');
+    }
+
+    const existingAgent = await this.agentRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingAgent) {
+      throw new BadRequestException('agent.phoneNumberExists');
+    }
+  }
+
   async fillForm(dto: FillUserFormDto): Promise<SafeUser> {
+    await this.assertPhoneAvailableForRegistration(dto.phoneNumber);
+
+    await this.otpService.verifyPhoneOtp(dto.phoneNumber, dto.otp);
+
     let referredByUserId: string | null = null;
     const incomingReferralCode = dto.referralCode?.trim().toUpperCase();
 
@@ -61,15 +95,29 @@ export class UserService {
 
     const user = this.userRepository.create({
       firstName: dto.firstName,
+      middleName: normalizeMiddleName(dto.middleName),
       lastName: dto.lastName,
       phoneNumber: dto.phoneNumber,
       email: dto.email,
       password: await this.hashPassword(dto.password),
       agentId: null,
       referredByUserId,
+      dateOfBirth: dto.dateOfBirth,
+      addressLine1: dto.addressLine1,
+      addressLine2: dto.addressLine2?.trim() || null,
+      landmark: dto.landmark?.trim() || null,
+      postalCode: dto.postalCode,
+      isMarried: dto.isMarried,
+      marriageDate: dto.isMarried ? dto.marriageDate ?? null : null,
+      phoneVerifiedAt: new Date(),
     });
 
     const saved = await this.userRepository.save(user);
+    await this.bankDetailsService.createForHolder(saved.id, BankHolderType.USER, {
+      accountHolderName: dto.accountHolderName,
+      accountNumber: dto.accountNumber,
+      ifscCode: dto.ifscCode,
+    });
     return this.toSafeUser(saved);
   }
 
@@ -124,6 +172,7 @@ export class UserService {
       select: {
         id: true,
         firstName: true,
+        middleName: true,
         lastName: true,
       },
       order: { firstName: 'ASC', lastName: 'ASC' },

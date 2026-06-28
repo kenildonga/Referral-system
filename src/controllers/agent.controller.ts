@@ -21,6 +21,7 @@ import {
   LoginAgentDto,
   ChangeAgentPasswordDto,
   SignUpAgentDto,
+  SendAgentRegistrationOtpDto,
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
@@ -47,6 +48,13 @@ export class AgentController {
   @ApiOperation({ summary: 'Agent login (Agent)' })
   login(@Body() loginAgentDto: LoginAgentDto) {
     return this.agentService.login(loginAgentDto);
+  }
+
+  @Post('register/send-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'Send registration OTP to phone (Agent sign-up)' })
+  sendRegistrationOtp(@Body() dto: SendAgentRegistrationOtpDto) {
+    return this.agentService.sendRegistrationOtp(dto);
   }
 
   @Post('sign-up')

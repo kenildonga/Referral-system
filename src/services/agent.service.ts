@@ -23,12 +23,16 @@ import {
   LoginAgentDto,
   ChangeAgentPasswordDto,
   SignUpAgentDto,
+  SendAgentRegistrationOtpDto,
   UpdateAgentProfileDto,
 } from '../dto/agent.dto';
 import { UpdateUserDto, UpdateUserStatusDto, ListMyUsersQueryDto } from '../dto/user.dto';
 import { I18nService } from '../i18n/i18n.service';
-import { UserStatus } from '../entities/enum';
+import { UserStatus, BankHolderType } from '../entities/enum';
 import { FormService } from './form.service';
+import { BankDetailsService } from './bank-details.service';
+import { formatPersonName, normalizeMiddleName } from '../common/utils/name.util';
+import { OtpService } from '../common/helpers/otp.service';
 
 type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
 type SafeUser = Omit<User, 'agent' | 'password' | 'referredBy'>;
@@ -42,6 +46,7 @@ const SAFE_USER_SELECT: FindOptionsSelect<User> = {
   id: true,
   agentId: true,
   firstName: true,
+  middleName: true,
   lastName: true,
   phoneNumber: true,
   email: true,
@@ -57,6 +62,7 @@ const SAFE_AGENT_SELECT: FindOptionsSelect<Agent> = {
   id: true,
   agentLoginId: true,
   firstName: true,
+  middleName: true,
   lastName: true,
   phoneNumber: true,
   email: true,
@@ -87,6 +93,8 @@ export class AgentService {
     private readonly chainReferralRepository: Repository<ChainReferral>,
     private readonly formService: FormService,
     private readonly i18n: I18nService,
+    private readonly otpService: OtpService,
+    private readonly bankDetailsService: BankDetailsService,
   ) {}
 
   // --- Agent Auth ---
@@ -145,21 +153,48 @@ export class AgentService {
     return { message: this.i18n.t('auth.passwordChangedSuccess') };
   }
 
+  async sendRegistrationOtp(
+    dto: SendAgentRegistrationOtpDto,
+  ): Promise<{ message: string }> {
+    await this.assertPhoneAvailableForRegistration(dto.phoneNumber);
+    await this.otpService.issuePhoneOtp(dto.phoneNumber);
+    return { message: 'OTP sent successfully' };
+  }
+
+  private async assertPhoneAvailableForRegistration(
+    phoneNumber: string,
+  ): Promise<void> {
+    const existingAgent = await this.agentRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingAgent) {
+      throw new ConflictException('agent.phoneNumberExists');
+    }
+
+    const existingUser = await this.userRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingUser) {
+      throw new ConflictException('user.phoneNumberAlreadyExists');
+    }
+  }
+
   async signUp(
     signUpAgentDto: SignUpAgentDto,
   ): Promise<{ accessToken: string; agent: SafeAgent }> {
+    await this.assertPhoneAvailableForRegistration(signUpAgentDto.phoneNumber);
+    await this.otpService.verifyPhoneOtp(
+      signUpAgentDto.phoneNumber,
+      signUpAgentDto.otp,
+    );
+
     const existingEmail = await this.agentRepository.findOne({
       where: { email: signUpAgentDto.email },
     });
     if (existingEmail) {
       throw new ConflictException('agent.emailExists');
-    }
-
-    const existingPhoneNumber = await this.agentRepository.findOne({
-      where: { phoneNumber: signUpAgentDto.phoneNumber },
-    });
-    if (existingPhoneNumber) {
-      throw new ConflictException('agent.phoneNumberExists');
     }
 
     const agentLoginId = await this.generateUniqueAgentLoginId();
@@ -168,6 +203,7 @@ export class AgentService {
       agentLoginId,
       password: await this.hashPassword(signUpAgentDto.password),
       firstName: signUpAgentDto.firstName,
+      middleName: normalizeMiddleName(signUpAgentDto.middleName),
       lastName: signUpAgentDto.lastName,
       phoneNumber: signUpAgentDto.phoneNumber,
       email: signUpAgentDto.email,
@@ -176,9 +212,20 @@ export class AgentService {
       isActive: true,
       tokenVersion: 0,
       createdById: null,
+      phoneVerifiedAt: new Date(),
     });
 
     const saved = await this.agentRepository.save(agent);
+    await this.bankDetailsService.createForHolder(
+      saved.id,
+      BankHolderType.AGENT,
+      {
+        accountHolderName: signUpAgentDto.accountHolderName,
+        accountNumber: signUpAgentDto.accountNumber,
+        ifscCode: signUpAgentDto.ifscCode,
+      },
+    );
+
     const accessToken = this.signToken(saved);
     saved.lastLogin = new Date();
     await this.agentRepository.save(saved);
@@ -279,6 +326,10 @@ export class AgentService {
 
     if (updateUserDto.lastName !== undefined) {
       user.lastName = updateUserDto.lastName;
+    }
+
+    if (updateUserDto.middleName !== undefined) {
+      user.middleName = normalizeMiddleName(updateUserDto.middleName);
     }
 
     if (
@@ -470,6 +521,7 @@ export class AgentService {
     const chainMap = new Map<string, { id: string; name: string; users: Array<{
       id: string;
       firstName: string;
+      middleName: string | null;
       lastName: string;
       position: number;
       assignType: string;
@@ -485,11 +537,12 @@ export class AgentService {
         });
       }
       const referredByName = ref.user.referredBy
-        ? `${ref.user.referredBy.firstName} ${ref.user.referredBy.lastName}`.trim()
+        ? formatPersonName(ref.user.referredBy)
         : null;
       chainMap.get(ref.chainId)!.users.push({
         id: ref.user.id,
         firstName: ref.user.firstName,
+        middleName: ref.user.middleName,
         lastName: ref.user.lastName,
         position: ref.position,
         assignType: ref.assignType,
@@ -534,6 +587,7 @@ export class AgentService {
       agentLoginId,
       password: await this.hashPassword(plainPassword),
       firstName: createAgentDto.firstName,
+      middleName: normalizeMiddleName(createAgentDto.middleName),
       lastName: createAgentDto.lastName,
       phoneNumber: createAgentDto.phoneNumber,
       email: createAgentDto.email,
@@ -599,6 +653,10 @@ export class AgentService {
 
     if (updateAgentDto.lastName !== undefined) {
       agent.lastName = updateAgentDto.lastName;
+    }
+
+    if (updateAgentDto.middleName !== undefined) {
+      agent.middleName = normalizeMiddleName(updateAgentDto.middleName);
     }
 
     if (updateAgentDto.state !== undefined) {
@@ -781,7 +839,7 @@ export class AgentService {
   private toSafeUserResponse(user: User): SafeUserResponse {
     const { agent, password, referredBy, ...safeUser } = user;
     const referredByName = referredBy
-      ? `${referredBy.firstName} ${referredBy.lastName}`.trim()
+      ? formatPersonName(referredBy)
       : null;
     return { ...safeUser, referredByName };
   }

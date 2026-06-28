@@ -11,6 +11,8 @@ import { City } from './entities/cities.entity';
 import { Form } from './entities/forms.entity';
 import { FormResponse } from './entities/form-responses.entity';
 import { PasswordResetOtp } from './entities/password-reset-otp.entity';
+import { PhoneRegistrationOtp } from './entities/phone-registration-otp.entity';
+import { BankDetails } from './entities/bank-details.entity';
 import { Chain } from './entities/chains.entity';
 import { ChainReferral } from './entities/chain-referrals.entity';
 import { AdminController } from './controllers/admin.controller';
@@ -25,6 +27,7 @@ import { FormService } from './services/form.service';
 import { UserService } from './services/user.service';
 import { IndexService } from './services/index.service';
 import { ChainService } from './services/chain.service';
+import { BankDetailsService } from './services/bank-details.service';
 import { I18nModule } from './i18n/i18n.module';
 import { CommonModule } from './common/common.module';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
@@ -64,6 +67,8 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       State,
       City,
       PasswordResetOtp,
+      PhoneRegistrationOtp,
+      BankDetails,
       Form,
       FormResponse,
       Chain,
@@ -85,6 +90,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     UserService,
     IndexService,
     ChainService,
+    BankDetailsService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

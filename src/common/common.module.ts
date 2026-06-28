@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PasswordResetOtp } from '../entities/password-reset-otp.entity';
+import { PhoneRegistrationOtp } from '../entities/phone-registration-otp.entity';
 import { Admin } from '../entities/admins.entity';
 import { Agent } from '../entities/agents.entity';
 import { User } from '../entities/users.entity';
@@ -11,7 +12,7 @@ import { AgentGuard } from './guards/jwt-agent-auth.guard';
 import { UserGuard } from './guards/jwt-user-auth.guard';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PasswordResetOtp, Admin, Agent, User])],
+  imports: [TypeOrmModule.forFeature([PasswordResetOtp, PhoneRegistrationOtp, Admin, Agent, User])],
   providers: [OtpService, S3Service, AdminGuard, AgentGuard, UserGuard],
   exports: [OtpService, S3Service, AdminGuard, AgentGuard, UserGuard],
 })

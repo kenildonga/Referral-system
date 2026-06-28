@@ -24,7 +24,7 @@ export class IndexService {
 
   async findCitiesByState(
     stateId: number,
-  ): Promise<Pick<City, 'id' | 'name' | 'stateId'>[]> {
+  ): Promise<Pick<City, 'id' | 'name' | 'stateId' | 'shortCode'>[]> {
     const state = await this.stateRepository.findOne({
       where: { id: stateId },
     });
@@ -36,7 +36,7 @@ export class IndexService {
 
     return this.cityRepository.find({
       where: { stateId },
-      select: { id: true, name: true, stateId: true },
+      select: { id: true, name: true, stateId: true, shortCode: true },
       order: { name: 'ASC' },
     });
   }

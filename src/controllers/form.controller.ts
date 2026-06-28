@@ -21,9 +21,11 @@ import {
 } from '../dto/form.dto';
 import { PresignUploadDto } from '../dto/form-upload.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
-import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
-import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
-import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
+import type {
+  AuthenticatedRequest,
+  FormAccessRequest,
+  SubmitterRequest,
+} from '../types/auth.types';
 
 @ApiTags('forms')
 @Controller('forms')
@@ -42,14 +44,7 @@ export class FormController {
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List all forms - (All type users)' })
-  findAll(
-    @Req()
-    req:
-      | AuthenticatedRequest
-      | AgentAuthenticatedRequest
-      | UserAuthenticatedRequest,
-    @Query() query: ListFormsQueryDto,
-  ) {
+  findAll(@Req() req: FormAccessRequest, @Query() query: ListFormsQueryDto) {
     return this.formService.findAll(query, req);
   }
 
@@ -77,14 +72,7 @@ export class FormController {
   @ApiOperation({
     summary: 'List all submissions for a form - (All type users)',
   })
-  listResponses(
-    @Param('id') id: string,
-    @Req()
-    req:
-      | AuthenticatedRequest
-      | AgentAuthenticatedRequest
-      | UserAuthenticatedRequest,
-  ) {
+  listResponses(@Param('id') id: string, @Req() req: FormAccessRequest) {
     return this.formService.listResponses(id, req);
   }
 
@@ -110,7 +98,7 @@ export class FormController {
   })
   presignUpload(
     @Param('id') id: string,
-    @Req() req: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    @Req() req: SubmitterRequest,
     @Body() dto: PresignUploadDto,
   ) {
     return this.formService.presignUpload(id, dto, req);
@@ -127,11 +115,7 @@ export class FormController {
     @Param('id') id: string,
     @Param('responseId') responseId: string,
     @Param('fieldId') fieldId: string,
-    @Req()
-    req:
-      | AuthenticatedRequest
-      | AgentAuthenticatedRequest
-      | UserAuthenticatedRequest,
+    @Req() req: FormAccessRequest,
   ) {
     return this.formService.getFileDownloadUrl(id, responseId, fieldId, req);
   }
@@ -140,14 +124,7 @@ export class FormController {
   @UseInterceptors(AllRoleAuthInterceptor(['all']))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get form schema by ID - (All type users)' })
-  findOne(
-    @Param('id') id: string,
-    @Req()
-    req:
-      | AuthenticatedRequest
-      | AgentAuthenticatedRequest
-      | UserAuthenticatedRequest,
-  ) {
+  findOne(@Param('id') id: string, @Req() req: FormAccessRequest) {
     return this.formService.findOne(id, req);
   }
 
@@ -158,7 +135,7 @@ export class FormController {
   @ApiOperation({ summary: 'Submit form response - (Agent and User)' })
   submit(
     @Param('id') id: string,
-    @Req() req: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    @Req() req: SubmitterRequest,
     @Body() dto: SubmitResponseDto,
   ) {
     return this.formService.submitResponse(id, dto, req);

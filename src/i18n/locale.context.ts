@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { DEFAULT_LOCALE } from './locale.types';
-import type { SupportedLocale } from './locale.types';
+import type { SupportedLocale } from '../types/i18n.types';
 
 export const localeStorage = new AsyncLocalStorage<SupportedLocale>();
 

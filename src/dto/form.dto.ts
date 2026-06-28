@@ -1,12 +1,9 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 import { SubmissionUserType } from '../entities/enum';
+import { isoDateString } from './schemas/shared.schema';
 
-const isoDateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'validation.date.invalidFormat');
-
-const FieldValidationSchema = z.object({
+export const FieldValidationSchema = z.object({
   required: z.boolean().optional(),
   minLength: z.number().int().min(0).optional(),
   maxLength: z.number().int().min(0).optional(),
@@ -33,7 +30,7 @@ const FieldTypeSchema = z.enum([
   'file',
 ]);
 
-const FormFieldSchema = z.object({
+export const FormFieldSchema = z.object({
   id: z.string().min(1, 'validation.fieldId.required'),
   type: FieldTypeSchema,
   label: z.string().min(1, 'validation.label.required'),
@@ -62,7 +59,7 @@ export const UpdateFormSchema = z
     message: 'validation.atLeastOneField',
   });
 
-const StoredFileMetaSchema = z.object({
+export const StoredFileMetaSchema = z.object({
   kind: z.literal('file'),
   key: z.string().min(1, 'validation.fileKey.required'),
   name: z.string(),
@@ -70,7 +67,7 @@ const StoredFileMetaSchema = z.object({
   type: z.string(),
 });
 
-const StoredAnswerValueSchema = z.union([
+export const StoredAnswerValueSchema = z.union([
   z.string(),
   z.array(z.string()),
   z.boolean(),
@@ -87,7 +84,13 @@ export const ListFormsQuerySchema = z.object({
 });
 
 export type FormFieldDto = z.infer<typeof FormFieldSchema>;
-export type ListFormsQueryDtoType = z.infer<typeof ListFormsQuerySchema>;
+export type StoredFileMeta = z.infer<typeof StoredFileMetaSchema>;
+export type StoredAnswerValue = z.infer<typeof StoredAnswerValueSchema>;
+export type FieldValidation = z.infer<typeof FieldValidationSchema>;
+export type DateValidation = Pick<
+  FieldValidation,
+  'minDate' | 'maxDate' | 'onlyFuture' | 'onlyPast'
+>;
 
 export interface FormListItemDto {
   id: string;
@@ -130,4 +133,6 @@ export interface SubmitResponseDto extends z.infer<
 > {}
 
 export class ListFormsQueryDto extends createZodDto(ListFormsQuerySchema) {}
-export interface ListFormsQueryDto extends ListFormsQueryDtoType {}
+export interface ListFormsQueryDto extends z.infer<
+  typeof ListFormsQuerySchema
+> {}

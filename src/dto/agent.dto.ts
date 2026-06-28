@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { passwordSchema } from './admin.dto';
+import {
+  changePasswordSchema,
+  matchingBankAccountsRefinement,
+  matchingBankAccountsRefinementConfig,
+  bankDetailsWithConfirmFields,
+  passwordSchema,
+  phoneNumberSchema,
+  sendPhoneOtpSchema,
+} from './schemas/shared.schema';
 
 export const CreateAgentSchema = z.object({
   firstName: z
@@ -12,10 +20,7 @@ export const CreateAgentSchema = z.object({
     .string()
     .min(1, 'validation.lastName.required')
     .max(255, 'validation.lastName.maxLength'),
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
-    .optional(),
+  phoneNumber: phoneNumberSchema.optional(),
   email: z.string().email('validation.email.invalid').max(255).optional(),
   state: z.string().min(1, 'validation.state.required').max(100),
   city: z.string().min(1, 'validation.city.required').max(100),
@@ -34,10 +39,7 @@ export const UpdateAgentSchema = z
       .min(1, 'validation.lastName.required')
       .max(255, 'validation.lastName.maxLength')
       .optional(),
-    phoneNumber: z
-      .string()
-      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
-      .optional(),
+    phoneNumber: phoneNumberSchema.optional(),
     email: z.string().email('validation.email.invalid').max(255).optional(),
     state: z.string().min(1, 'validation.state.required').max(100).optional(),
     city: z.string().min(1, 'validation.city.required').max(100).optional(),
@@ -55,10 +57,7 @@ export const LoginAgentSchema = z.object({
   password: z.string().min(1, 'validation.password.required'),
 });
 
-export const ChangeAgentPasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'validation.currentPassword.required'),
-  newPassword: passwordSchema,
-});
+export const ChangeAgentPasswordSchema = changePasswordSchema;
 
 export const SignUpAgentSchema = z
   .object({
@@ -71,7 +70,7 @@ export const SignUpAgentSchema = z
       .string()
       .min(1, 'validation.lastName.required')
       .max(255, 'validation.lastName.maxLength'),
-    phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+    phoneNumber: phoneNumberSchema,
     email: z
       .string()
       .min(1, 'validation.email.required')
@@ -80,31 +79,12 @@ export const SignUpAgentSchema = z
     state: z.string().min(1, 'validation.state.required').max(100),
     city: z.string().min(1, 'validation.city.required').max(100),
     password: passwordSchema,
-    accountHolderName: z
-      .string()
-      .min(1, 'validation.accountHolderName.required')
-      .max(255),
-    accountNumber: z
-      .string()
-      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
-    confirmAccountNumber: z
-      .string()
-      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
-    ifscCode: z
-      .string()
-      .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/i, 'validation.ifscCode.invalid'),
     otp: z.string().length(4, 'validation.otp.invalid'),
+    ...bankDetailsWithConfirmFields,
   })
-  .refine((data) => data.confirmAccountNumber === data.accountNumber, {
-    message: 'validation.accountNumber.mismatch',
-    path: ['confirmAccountNumber'],
-  });
+  .refine(matchingBankAccountsRefinement, matchingBankAccountsRefinementConfig);
 
-export const SendAgentRegistrationOtpSchema = z.object({
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
-});
+export const SendAgentRegistrationOtpSchema = sendPhoneOtpSchema;
 
 export const UpdateAgentProfileSchema = z
   .object({
@@ -119,10 +99,7 @@ export const UpdateAgentProfileSchema = z
       .min(1, 'validation.lastName.required')
       .max(255, 'validation.lastName.maxLength')
       .optional(),
-    phoneNumber: z
-      .string()
-      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid')
-      .optional(),
+    phoneNumber: phoneNumberSchema.optional(),
     email: z.string().email('validation.email.invalid').max(255).optional(),
     state: z.string().min(1, 'validation.state.required').max(100).optional(),
     city: z.string().min(1, 'validation.city.required').max(100).optional(),

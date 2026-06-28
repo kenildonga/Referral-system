@@ -22,7 +22,7 @@ import {
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
-import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
+import type { AuthenticatedRequest } from '../types/auth.types';
 
 @ApiTags('admins')
 @Controller('admins')

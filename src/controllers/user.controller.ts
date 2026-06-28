@@ -20,7 +20,7 @@ import {
   LoginUserDto,
 } from '../dto/user.dto';
 import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.interceptor';
-import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
+import type { UserAuthenticatedRequest } from '../types/auth.types';
 
 @ApiTags('users')
 @ApiBearerAuth()

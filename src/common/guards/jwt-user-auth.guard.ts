@@ -11,7 +11,7 @@ import { User } from '../../entities/users.entity';
 import type {
   UserAuthenticatedRequest,
   UserJwtPayload,
-} from '../interfaces/user-auth.interface';
+} from '../../types/auth.types';
 
 @Injectable()
 export class UserGuard implements CanActivate {

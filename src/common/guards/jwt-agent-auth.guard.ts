@@ -11,7 +11,7 @@ import { Agent } from '../../entities/agents.entity';
 import type {
   AgentAuthenticatedRequest,
   AgentJwtPayload,
-} from '../interfaces/agent-auth.interface';
+} from '../../types/auth.types';
 
 @Injectable()
 export class AgentGuard implements CanActivate {

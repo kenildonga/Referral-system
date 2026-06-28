@@ -12,10 +12,11 @@ import { Observable } from 'rxjs';
 import { AdminGuard } from '../guards/jwt-admin-auth.guard';
 import { AgentGuard } from '../guards/jwt-agent-auth.guard';
 import { UserGuard } from '../guards/jwt-user-auth.guard';
-import type { AuthenticatedRequest } from '../interfaces/auth.interface';
-
-export type AuthRolePreset = 'superAdmin' | 'admin' | 'agent' | 'user' | 'all';
-type AuthRole = 'superAdmin' | 'admin' | 'agent' | 'user';
+import type {
+  AuthenticatedRequest,
+  AuthRole,
+  AuthRolePreset,
+} from '../../types/auth.types';
 
 function resolveAllowedRoles(presets: AuthRolePreset[]): Set<AuthRole> {
   const allowed = new Set<AuthRole>();

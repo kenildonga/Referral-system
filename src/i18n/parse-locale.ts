@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, isSupportedLocale } from './locale.types';
-import type { SupportedLocale } from './locale.types';
+import type { SupportedLocale } from '../types/i18n.types';
 
 export function parseLocale(
   acceptLanguage?: string | string[],

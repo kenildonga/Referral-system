@@ -1,6 +1,6 @@
-export const SUPPORTED_LOCALES = ['en', 'hi', 'gu'] as const;
+import type { SupportedLocale } from '../types/i18n.types';
 
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
+export const SUPPORTED_LOCALES = ['en', 'hi', 'gu'] as const;
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 

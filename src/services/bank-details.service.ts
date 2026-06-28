@@ -3,12 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BankDetails } from '../entities/bank-details.entity';
 import { BankHolderType } from '../entities/enum';
-
-type CreateBankDetailsInput = {
-  accountHolderName: string;
-  accountNumber: string;
-  ifscCode: string;
-};
+import type { CreateBankDetailsInput } from '../types/bank.types';
 
 @Injectable()
 export class BankDetailsService {

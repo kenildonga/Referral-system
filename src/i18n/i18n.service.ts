@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { getCurrentLocale } from './locale.context';
 import { messageCatalogs } from './messages';
 import { DEFAULT_LOCALE } from './locale.types';
-import type { SupportedLocale } from './locale.types';
+import type { SupportedLocale } from '../types/i18n.types';
 
 @Injectable()
 export class I18nService {

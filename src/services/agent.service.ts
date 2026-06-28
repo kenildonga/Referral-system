@@ -33,14 +33,23 @@ import { FormService } from './form.service';
 import { BankDetailsService } from './bank-details.service';
 import { formatPersonName, normalizeMiddleName } from '../common/utils/name.util';
 import { OtpService } from '../common/helpers/otp.service';
-
-type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
-type SafeUser = Omit<User, 'agent' | 'password' | 'referredBy'>;
-type SafeUserResponse = SafeUser & { referredByName: string | null };
-type UserWithFormStats = SafeUserResponse & {
-  filledFormsCount: number;
-  totalFormsCount: number;
-};
+import type {
+  SafeAgent,
+  SafeUser,
+  SafeUserResponse,
+  UserWithFormStats,
+} from '../types/safe-entity.types';
+import type {
+  AgentCredentialsResponse,
+  AgentResetPasswordResponse,
+  AuthTokenResponse,
+  ApiMessageResponse,
+} from '../types/api-response.types';
+import type {
+  AgentChainReferralGroup,
+  AgentChainReferralsResponse,
+  UserApprovalInfo,
+} from '../types/chain.types';
 
 const SAFE_USER_SELECT: FindOptionsSelect<User> = {
   id: true,
@@ -101,7 +110,7 @@ export class AgentService {
 
   async login(
     loginAgentDto: LoginAgentDto,
-  ): Promise<{ accessToken: string; agent: SafeAgent }> {
+  ): Promise<AuthTokenResponse<{ agent: SafeAgent }>> {
     const agent = await this.agentRepository.findOne({
       where: { agentLoginId: loginAgentDto.agentLoginId },
     });
@@ -125,7 +134,7 @@ export class AgentService {
     return { accessToken, agent: this.toSafeAgent(agent) };
   }
 
-  async logout(agentId: string): Promise<{ message: string }> {
+  async logout(agentId: string): Promise<ApiMessageResponse> {
     await this.incrementTokenVersion(agentId);
     return { message: this.i18n.t('auth.logoutSuccess') };
   }
@@ -133,7 +142,7 @@ export class AgentService {
   async changePassword(
     agentId: string,
     changeAgentPasswordDto: ChangeAgentPasswordDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const agent = await this.agentRepository.findOne({
       where: { id: agentId },
     });
@@ -155,7 +164,7 @@ export class AgentService {
 
   async sendRegistrationOtp(
     dto: SendAgentRegistrationOtpDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     await this.assertPhoneAvailableForRegistration(dto.phoneNumber);
     await this.otpService.issuePhoneOtp(dto.phoneNumber);
     return { message: 'OTP sent successfully' };
@@ -183,7 +192,7 @@ export class AgentService {
 
   async signUp(
     signUpAgentDto: SignUpAgentDto,
-  ): Promise<{ accessToken: string; agent: SafeAgent }> {
+  ): Promise<AuthTokenResponse<{ agent: SafeAgent }>> {
     await this.assertPhoneAvailableForRegistration(signUpAgentDto.phoneNumber);
     await this.otpService.verifyPhoneOtp(
       signUpAgentDto.phoneNumber,
@@ -281,11 +290,7 @@ export class AgentService {
   async getApprovalInfo(
     agentId: string,
     userId: string,
-  ): Promise<{
-    requiresChainSelection: boolean;
-    suggestedChainId: string | null;
-    chains: Chain[];
-  }> {
+  ): Promise<UserApprovalInfo> {
     const user = await this.findAssignedUserOrFail(agentId, userId);
     const chains = await this.chainRepository.find({ order: { name: 'ASC' } });
 
@@ -371,7 +376,7 @@ export class AgentService {
   async removeMyUser(
     agentId: string,
     userId: string,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const user = await this.findAssignedUserOrFail(agentId, userId);
     await this.userRepository.remove(user);
     return { message: this.i18n.t('user.deletedSuccess') };
@@ -511,22 +516,16 @@ export class AgentService {
     return latest ? latest.position + 1 : 1;
   }
 
-  async getMyChainReferrals(agentId: string) {
+  async getMyChainReferrals(
+    agentId: string,
+  ): Promise<AgentChainReferralsResponse> {
     const referrals = await this.chainReferralRepository.find({
       where: { agentId },
       relations: { chain: true, user: { referredBy: true } },
       order: { position: 'ASC' },
     });
 
-    const chainMap = new Map<string, { id: string; name: string; users: Array<{
-      id: string;
-      firstName: string;
-      middleName: string | null;
-      lastName: string;
-      position: number;
-      assignType: string;
-      referredByName: string | null;
-    }> }>();
+    const chainMap = new Map<string, AgentChainReferralGroup>();
 
     for (const ref of referrals) {
       if (!chainMap.has(ref.chainId)) {
@@ -558,10 +557,7 @@ export class AgentService {
   async create(
     createAgentDto: CreateAgentDto,
     createdById: string,
-  ): Promise<{
-    agent: SafeAgent;
-    credentials: { agentLoginId: string; password: string };
-  }> {
+  ): Promise<AgentCredentialsResponse> {
     if (createAgentDto.email) {
       const existingEmail = await this.agentRepository.findOne({
         where: { email: createAgentDto.email },
@@ -671,7 +667,7 @@ export class AgentService {
     return this.toSafeAgent(saved);
   }
 
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string): Promise<ApiMessageResponse> {
     const agent = await this.findByIdOrFail(id);
     await this.agentRepository.remove(agent);
     return { message: this.i18n.t('agent.deletedSuccess') };
@@ -687,10 +683,7 @@ export class AgentService {
     return this.toSafeAgent(saved);
   }
 
-  async resetPassword(id: string): Promise<{
-    message: string;
-    credentials: { agentLoginId: string; password: string };
-  }> {
+  async resetPassword(id: string): Promise<AgentResetPasswordResponse> {
     const agent = await this.findByIdOrFail(id);
     const plainPassword = this.generatePassword();
     await this.updatePassword(agent, plainPassword);

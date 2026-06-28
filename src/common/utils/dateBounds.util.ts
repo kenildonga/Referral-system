@@ -1,11 +1,6 @@
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+import type { DateValidation } from '../../dto/form.dto';
 
-type DateValidation = {
-  minDate?: string;
-  maxDate?: string;
-  onlyFuture?: boolean;
-  onlyPast?: boolean;
-};
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function formatLocalDate(date: Date): string {
   const year = date.getFullYear();

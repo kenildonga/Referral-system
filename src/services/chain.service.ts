@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Chain } from '../entities/chains.entity';
 import { CreateChainDto, UpdateChainDto } from '../dto/chain.dto';
 import { I18nService } from '../i18n/i18n.service';
+import type { ApiMessageResponse } from '../types/api-response.types';
 
 @Injectable()
 export class ChainService {
@@ -44,7 +45,7 @@ export class ChainService {
     return this.chainRepository.save(chain);
   }
 
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string): Promise<ApiMessageResponse> {
     const chain = await this.findByIdOrFail(id);
     await this.chainRepository.remove(chain);
     return { message: this.i18n.t('chain.deletedSuccess') };

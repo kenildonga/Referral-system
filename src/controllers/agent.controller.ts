@@ -28,8 +28,10 @@ import { AllRoleAuthInterceptor } from '../common/interceptors/all-role-auth.int
 import { UpdateUserDto, ListMyUsersQueryDto, UpdateUserStatusDto } from '../dto/user.dto';
 import { SubmitResponseDto } from '../dto/form.dto';
 import { PresignUploadDto } from '../dto/form-upload.dto';
-import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
-import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
+import type {
+  AgentAuthenticatedRequest,
+  AuthenticatedRequest,
+} from '../types/auth.types';
 
 @ApiTags('agents')
 @Controller('agents')

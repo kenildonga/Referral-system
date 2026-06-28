@@ -18,25 +18,27 @@ import {
 } from '../common/utils/dateBounds.util';
 import {
   CreateFormDto,
+  FormFieldDto,
   FormListItemDto,
   FormResponseListItemDto,
   FormResponseSubmitterDto,
   ListFormsQueryDto,
   UpdateFormDto,
   SubmitResponseDto,
-  FormFieldDto,
 } from '../dto/form.dto';
 import { PresignUploadDto } from '../dto/form-upload.dto';
 import { S3Service } from '../common/helpers/s3.service';
 import { I18nService } from '../i18n/i18n.service';
-import type { AuthenticatedRequest } from '../common/interfaces/auth.interface';
-import type { AgentAuthenticatedRequest } from '../common/interfaces/agent-auth.interface';
-import type { UserAuthenticatedRequest } from '../common/interfaces/user-auth.interface';
+import type {
+  FormAccessRequest,
+  SubmitterRequest,
+} from '../types/auth.types';
+import type {
+  FileDownloadResponse,
+  ApiMessageResponse,
+  PresignUploadResponse,
+} from '../types/api-response.types';
 
-type FormAccessRequest =
-  | AuthenticatedRequest
-  | AgentAuthenticatedRequest
-  | UserAuthenticatedRequest;
 
 @Injectable()
 export class FormService {
@@ -190,7 +192,7 @@ export class FormService {
     return this.formRepository.save(form);
   }
 
-  async remove(id: string): Promise<{ message: string }> {
+  async remove(id: string): Promise<ApiMessageResponse> {
     await this.findFormOrFail(id);
     const responses = await this.responseRepository.find({
       where: { formId: id },
@@ -206,7 +208,7 @@ export class FormService {
   async submitResponse(
     formId: string,
     dto: SubmitResponseDto,
-    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    request: SubmitterRequest,
   ): Promise<FormResponse> {
     const { submitterId, submitterType } = this.resolveSubmitter(request);
 
@@ -253,7 +255,7 @@ export class FormService {
   }
 
   private resolveSubmitter(
-    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
+    request: SubmitterRequest,
   ): { submitterId: string; submitterType: SubmissionUserType } {
     if ('agent' in request && request.agent?.id) {
       return {
@@ -332,7 +334,7 @@ export class FormService {
   async removeResponse(
     formId: string,
     responseId: string,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const response = await this.findResponseOrFail(formId, responseId);
     await this.responseRepository.softDelete(responseId);
     void this.deleteResponseFiles(response.answers);
@@ -342,13 +344,8 @@ export class FormService {
   async presignUpload(
     formId: string,
     dto: PresignUploadDto,
-    request: AgentAuthenticatedRequest | UserAuthenticatedRequest,
-  ): Promise<{
-    uploadUrl: string;
-    key: string;
-    url: string;
-    expiresIn: number;
-  }> {
+    request: SubmitterRequest,
+  ): Promise<PresignUploadResponse> {
     const submitter = this.resolveSubmitter(request);
     const form = await this.findFormOrFail(formId);
     if (!form.isPublished) {
@@ -382,7 +379,7 @@ export class FormService {
     responseId: string,
     fieldId: string,
     request: FormAccessRequest,
-  ): Promise<{ downloadUrl: string; expiresIn: number }> {
+  ): Promise<FileDownloadResponse> {
     const form = await this.findFormOrFail(formId);
     const submitter = this.resolveOptionalSubmitter(request);
     if (submitter) {
@@ -830,12 +827,7 @@ export class FormService {
     userId: string,
     formId: string,
     dto: PresignUploadDto,
-  ): Promise<{
-    uploadUrl: string;
-    key: string;
-    url: string;
-    expiresIn: number;
-  }> {
+  ): Promise<PresignUploadResponse> {
     await this.assertAgentOwnsUser(agentId, userId);
 
     const form = await this.findFormOrFail(formId);
@@ -873,7 +865,7 @@ export class FormService {
     formId: string,
     responseId: string,
     fieldId: string,
-  ): Promise<{ downloadUrl: string; expiresIn: number }> {
+  ): Promise<FileDownloadResponse> {
     await this.assertAgentOwnsUser(agentId, userId);
 
     const response = await this.findResponseOrFail(formId, responseId);

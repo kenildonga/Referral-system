@@ -1,4 +1,4 @@
-import type { MessageTree } from './index';
+import type { MessageTree } from '../../types/i18n.types';
 
 export const hiMessages: MessageTree = {
   'ThrottlerException: Too Many Requests':

@@ -11,7 +11,7 @@ import { Admin } from '../../entities/admins.entity';
 import type {
   AuthenticatedRequest,
   JwtPayload,
-} from '../interfaces/auth.interface';
+} from '../../types/auth.types';
 
 @Injectable()
 export class AdminGuard implements CanActivate {

@@ -22,11 +22,14 @@ import {
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
 import { AdminRole, OtpPurpose } from '../entities/enum';
-import type { AuthenticatedAdmin } from '../common/interfaces/auth.interface';
+import type { AuthenticatedAdmin } from '../types/auth.types';
+import type { SafeAdmin } from '../types/safe-entity.types';
+import type {
+  AuthTokenResponse,
+  ApiMessageResponse,
+} from '../types/api-response.types';
 import { OtpService } from '../common/helpers/otp.service';
 import { I18nService } from '../i18n/i18n.service';
-
-type SafeAdmin = Omit<Admin, 'password' | 'tokenVersion'>;
 
 const SAFE_ADMIN_SELECT: FindOptionsSelect<Admin> = {
   id: true,
@@ -57,7 +60,7 @@ export class AdminService {
 
   async login(
     loginAdminDto: LoginAdminDto,
-  ): Promise<{ accessToken: string; admin: SafeAdmin }> {
+  ): Promise<AuthTokenResponse<{ admin: SafeAdmin }>> {
     const admin = await this.adminRepository.findOne({
       where: { email: loginAdminDto.email },
     });
@@ -81,7 +84,7 @@ export class AdminService {
     return { accessToken, admin: this.toSafeAdmin(admin) };
   }
 
-  async logout(adminId: string): Promise<{ message: string }> {
+  async logout(adminId: string): Promise<ApiMessageResponse> {
     await this.incrementTokenVersion(adminId);
     return { message: this.i18n.t('auth.logoutSuccess') };
   }
@@ -89,7 +92,7 @@ export class AdminService {
   async changePassword(
     adminId: string,
     changePasswordDto: ChangePasswordDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const admin = await this.adminRepository.findOne({
       where: { id: adminId },
     });
@@ -109,7 +112,7 @@ export class AdminService {
     return { message: this.i18n.t('auth.passwordChangedSuccess') };
   }
 
-  async forgotPassword(phoneNumber: string): Promise<{ message: string }> {
+  async forgotPassword(phoneNumber: string): Promise<ApiMessageResponse> {
     const admin = await this.adminRepository.findOne({
       where: { phoneNumber, isActive: true },
     });
@@ -122,7 +125,7 @@ export class AdminService {
 
   async resetPasswordWithOtp(
     resetPasswordOtpDto: ResetPasswordOtpDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const { phoneNumber, otp, newPassword } = resetPasswordOtpDto;
 
     const admin = await this.adminRepository.findOne({
@@ -230,7 +233,7 @@ export class AdminService {
   async resetPassword(
     id: string,
     resetAdminPasswordDto: ResetAdminPasswordDto,
-  ): Promise<{ message: string }> {
+  ): Promise<ApiMessageResponse> {
     const admin = await this.findByIdOrFail(id);
     await this.updatePassword(admin, resetAdminPasswordDto.newPassword);
     return { message: this.i18n.t('auth.passwordResetSuccess') };

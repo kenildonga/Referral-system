@@ -12,7 +12,7 @@ import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod';
 import { I18nService } from '../../i18n/i18n.service';
 import { HTTP_STATUS_ERROR_KEYS } from '../../i18n/messages';
-import type { LocaleRequest } from '../../i18n/locale.interceptor';
+import type { LocaleRequest } from '../../types/i18n.types';
 import { parseLocale } from '../../i18n/parse-locale';
 
 @Catch()

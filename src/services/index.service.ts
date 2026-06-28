@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { State } from '../entities/states.entity';
 import { City } from '../entities/cities.entity';
 import { I18nService } from '../i18n/i18n.service';
+import type { CityListItem, StateListItem } from '../types/location.types';
 
 @Injectable()
 export class IndexService {
@@ -15,7 +16,7 @@ export class IndexService {
     private readonly i18n: I18nService,
   ) {}
 
-  async findAllStates(): Promise<Pick<State, 'id' | 'name' | 'stateCode'>[]> {
+  async findAllStates(): Promise<StateListItem[]> {
     return this.stateRepository.find({
       select: { id: true, name: true, stateCode: true },
       order: { name: 'ASC' },
@@ -24,7 +25,7 @@ export class IndexService {
 
   async findCitiesByState(
     stateId: number,
-  ): Promise<Pick<City, 'id' | 'name' | 'stateId' | 'shortCode'>[]> {
+  ): Promise<CityListItem[]> {
     const state = await this.stateRepository.findOne({
       where: { id: stateId },
     });

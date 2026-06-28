@@ -24,10 +24,12 @@ import { UserStatus, BankHolderType } from '../entities/enum';
 import { normalizeMiddleName } from '../common/utils/name.util';
 import { OtpService } from '../common/helpers/otp.service';
 import { BankDetailsService } from './bank-details.service';
-
-type SafeUser = Omit<User, 'agent' | 'password' | 'tokenVersion' | 'referredBy'>;
-
-type SafeAgent = Omit<Agent, 'password' | 'tokenVersion' | 'createdBy'>;
+import type { SafeAgent, SafeUser } from '../types/safe-entity.types';
+import type {
+  AuthTokenResponse,
+  ApiMessageResponse,
+  UserLocationNames,
+} from '../types/api-response.types';
 
 @Injectable()
 export class UserService {
@@ -45,7 +47,7 @@ export class UserService {
     private readonly bankDetailsService: BankDetailsService,
   ) {}
 
-  async sendRegistrationOtp(dto: SendRegistrationOtpDto): Promise<{ message: string }> {
+  async sendRegistrationOtp(dto: SendRegistrationOtpDto): Promise<ApiMessageResponse> {
     await this.assertPhoneAvailableForRegistration(dto.phoneNumber);
     await this.otpService.issuePhoneOtp(dto.phoneNumber);
     return { message: 'OTP sent successfully' };
@@ -123,7 +125,7 @@ export class UserService {
 
   async login(
     loginUserDto: LoginUserDto,
-  ): Promise<{ accessToken: string; user: SafeUser }> {
+  ): Promise<AuthTokenResponse<{ user: SafeUser }>> {
     const user = await this.userRepository.findOne({
       where: { phoneNumber: loginUserDto.phoneNumber },
     });
@@ -144,7 +146,7 @@ export class UserService {
     return { accessToken, user: this.toSafeUser(user) };
   }
 
-  async logout(userId: string): Promise<{ message: string }> {
+  async logout(userId: string): Promise<ApiMessageResponse> {
     await this.incrementTokenVersion(userId);
     return { message: this.i18n.t('auth.logoutSuccess') };
   }
@@ -218,7 +220,7 @@ export class UserService {
   private async resolveLocationNames(
     stateId: number,
     cityId: number,
-  ): Promise<{ stateName: string; cityName: string }> {
+  ): Promise<UserLocationNames> {
     const state = await this.stateRepository.findOne({
       where: { id: stateId },
     });

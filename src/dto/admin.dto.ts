@@ -1,17 +1,11 @@
 import { z } from 'zod';
 import { AdminRole } from '../entities/enum';
 import { createZodDto } from 'nestjs-zod';
-
-export const passwordSchema = z
-  .string()
-  .min(8, 'validation.password.minLength')
-  .max(255, 'validation.password.maxLength')
-  .regex(/[a-zA-Z]/, 'validation.password.requireLetter')
-  .regex(/[0-9]/, 'validation.password.requireNumber');
-
-const phoneNumberSchema = z
-  .string()
-  .regex(/^\d{10}$/, 'validation.phoneNumber.invalid');
+import {
+  changePasswordSchema,
+  passwordSchema,
+  phoneNumberSchema,
+} from './schemas/shared.schema';
 
 export const CreateAdminSchema = z.object({
   name: z.string().min(1, 'validation.name.required').max(255),
@@ -45,10 +39,7 @@ export const UpdateAdminStatusSchema = z.object({
   isActive: z.boolean(),
 });
 
-export const ChangePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'validation.currentPassword.required'),
-  newPassword: passwordSchema,
-});
+export const ChangePasswordSchema = changePasswordSchema;
 
 export const ForgotPasswordSchema = z.object({
   phoneNumber: phoneNumberSchema,

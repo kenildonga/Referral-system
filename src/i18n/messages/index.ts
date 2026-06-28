@@ -1,11 +1,7 @@
 import { enMessages } from './en';
 import { hiMessages } from './hi';
 import { guMessages } from './gu';
-import type { SupportedLocale } from '../locale.types';
-
-export type MessageTree = {
-  [key: string]: string | MessageTree;
-};
+import type { MessageTree, SupportedLocale } from '../../types/i18n.types';
 
 function flattenMessages(
   tree: MessageTree,

@@ -7,12 +7,7 @@ import {
 import { Observable } from 'rxjs';
 import { parseLocale } from './parse-locale';
 import { localeStorage } from './locale.context';
-import type { SupportedLocale } from './locale.types';
-
-export interface LocaleRequest {
-  locale?: SupportedLocale;
-  headers: Record<string, string | string[] | undefined>;
-}
+import type { LocaleRequest } from '../types/i18n.types';
 
 @Injectable()
 export class LocaleInterceptor implements NestInterceptor {

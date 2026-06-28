@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
-import { passwordSchema } from './admin.dto';
 import { UserStatus } from '../entities/enum';
-
-const isoDateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'validation.date.invalidFormat');
+import {
+  bankDetailsWithConfirmFields,
+  isoDateString,
+  matchingBankAccountsRefinement,
+  matchingBankAccountsRefinementConfig,
+  passwordSchema,
+  phoneNumberSchema,
+  sendPhoneOtpSchema,
+} from './schemas/shared.schema';
 
 function parseIsoDate(value: string): Date | null {
   const [year, month, day] = value.split('-').map(Number);
@@ -36,9 +40,7 @@ export const FillUserFormSchema = z
       .max(255, 'validation.middleName.maxLength')
       .optional(),
     lastName: z.string().min(1, 'validation.lastName.required').max(255),
-    phoneNumber: z
-      .string()
-      .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+    phoneNumber: phoneNumberSchema,
     email: z.string().email('validation.email.invalid').max(255),
     password: z
       .string()
@@ -56,25 +58,10 @@ export const FillUserFormSchema = z
     postalCode: z.string().regex(/^\d{6}$/, 'validation.postalCode.invalid'),
     isMarried: z.boolean(),
     marriageDate: isoDateString.optional().nullable(),
-    accountHolderName: z
-      .string()
-      .min(1, 'validation.accountHolderName.required')
-      .max(255),
-    accountNumber: z
-      .string()
-      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
-    confirmAccountNumber: z
-      .string()
-      .regex(/^\d+$/, 'validation.accountNumber.invalid'),
-    ifscCode: z
-      .string()
-      .regex(/^[A-Z]{4}0[A-Z0-9]{6}$/i, 'validation.ifscCode.invalid'),
     otp: z.string().length(4, 'validation.otp.invalid'),
+    ...bankDetailsWithConfirmFields,
   })
-  .refine((data) => data.confirmAccountNumber === data.accountNumber, {
-    message: 'validation.accountNumber.mismatch',
-    path: ['confirmAccountNumber'],
-  })
+  .refine(matchingBankAccountsRefinement, matchingBankAccountsRefinementConfig)
   .refine((data) => isPastOrToday(data.dateOfBirth), {
     message: 'validation.dateOfBirth.invalid',
     path: ['dateOfBirth'],
@@ -99,11 +86,7 @@ export const FillUserFormSchema = z
     },
   );
 
-export const SendRegistrationOtpSchema = z.object({
-  phoneNumber: z
-    .string()
-    .regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
-});
+export const SendRegistrationOtpSchema = sendPhoneOtpSchema;
 
 export const UpdateUserAgentSchema = z.object({
   agentId: z.string().uuid('validation.agentId.invalid'),
@@ -117,7 +100,7 @@ export const ListAgentsQuerySchema = z.object({
 });
 
 export const LoginUserSchema = z.object({
-  phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+  phoneNumber: phoneNumberSchema,
   password: z.string().min(1, 'validation.password.required'),
 });
 
@@ -126,7 +109,7 @@ export const UpdateUserSchema = z
     firstName: z.string().min(1, 'validation.firstName.required').max(255),
     middleName: z.string().max(255, 'validation.middleName.maxLength').optional(),
     lastName: z.string().min(1, 'validation.lastName.required').max(255),
-    phoneNumber: z.string().regex(/^\d{10}$/, 'validation.phoneNumber.invalid'),
+    phoneNumber: phoneNumberSchema,
     email: z.string().email('validation.email.invalid').max(255),
     password: passwordSchema,
   })

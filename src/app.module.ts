@@ -10,7 +10,6 @@ import { State } from './entities/states.entity';
 import { City } from './entities/cities.entity';
 import { Form } from './entities/forms.entity';
 import { FormResponse } from './entities/form-responses.entity';
-import { PasswordResetOtp } from './entities/password-reset-otp.entity';
 import { PhoneRegistrationOtp } from './entities/phone-registration-otp.entity';
 import { BankDetails } from './entities/bank-details.entity';
 import { Chain } from './entities/chains.entity';
@@ -66,7 +65,6 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       User,
       State,
       City,
-      PasswordResetOtp,
       PhoneRegistrationOtp,
       BankDetails,
       Form,

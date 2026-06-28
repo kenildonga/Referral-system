@@ -16,10 +16,11 @@ export const guMessages: MessageTree = {
     passwordChangedSuccess: 'પાસવર્ડ સફળતાપૂર્વક બદલાયો',
     passwordResetSuccess: 'પાસવર્ડ સફળતાપૂર્વક રીસેટ થયો',
     forgotPasswordGeneric:
-      'જો ઇમેઇલ અસ્તિત્વમાં હોય, તો OTP મોકલવામાં આવ્યો છે',
+      'જો ફોન નંબર અસ્તિત્વમાં હોય, તો OTP મોકલવામાં આવ્યો છે',
   },
   admin: {
     emailExists: 'આ ઇમેઇલ સાથેનો એડમિન પહેલેથી અસ્તિત્વમાં છે',
+    phoneNumberExists: 'આ ફોન નંબર સાથેનો એડમિન પહેલેથી અસ્તિત્વમાં છે',
     notFound: 'આઈડી {{id}} સાથેનો એડમિન મળ્યો નથી',
     cannotDeactivateSelf: 'તમે તમારું એકાઉન્ટ નિષ્ક્રિય કરી શકતા નથી',
     cannotModifyLastSuperAdmin:

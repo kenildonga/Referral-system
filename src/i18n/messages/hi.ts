@@ -16,10 +16,11 @@ export const hiMessages: MessageTree = {
     logoutSuccess: 'सफलतापूर्वक लॉग आउट हो गया',
     passwordChangedSuccess: 'पासवर्ड सफलतापूर्वक बदला गया',
     passwordResetSuccess: 'पासवर्ड सफलतापूर्वक रीसेट हो गया',
-    forgotPasswordGeneric: 'यदि ईमेल मौजूद है, तो एक OTP भेजा गया है',
+    forgotPasswordGeneric: 'यदि फ़ोन नंबर मौजूद है, तो एक OTP भेजा गया है',
   },
   admin: {
     emailExists: 'इस ईमेल वाला एडमिन पहले से मौजूद है',
+    phoneNumberExists: 'इस फ़ोन नंबर वाला एडमिन पहले से मौजूद है',
     notFound: 'आईडी {{id}} वाला एडमिन नहीं मिला',
     cannotDeactivateSelf: 'आप अपना खाता निष्क्रिय नहीं कर सकते',
     cannotModifyLastSuperAdmin:

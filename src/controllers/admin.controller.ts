@@ -42,7 +42,7 @@ export class AdminController {
     summary: 'Request password reset OTP (Admin and Super Admin)',
   })
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
-    return this.adminService.forgotPassword(forgotPasswordDto.email);
+    return this.adminService.forgotPassword(forgotPasswordDto.phoneNumber);
   }
 
   @Post('reset-password')

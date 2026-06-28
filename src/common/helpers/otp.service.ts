@@ -2,16 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { PasswordResetOtp } from '../../entities/password-reset-otp.entity';
 import { PhoneRegistrationOtp } from '../../entities/phone-registration-otp.entity';
+import { OtpPurpose } from '../../entities/enum';
 
 const TEMP_OTP = '1111';
 
 @Injectable()
 export class OtpService {
   constructor(
-    @InjectRepository(PasswordResetOtp)
-    private readonly otpRepository: Repository<PasswordResetOtp>,
     @InjectRepository(PhoneRegistrationOtp)
     private readonly phoneOtpRepository: Repository<PhoneRegistrationOtp>,
   ) {}
@@ -28,66 +26,10 @@ export class OtpService {
     return parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10);
   }
 
-  async issueOtp(email: string): Promise<void> {
-    const otp = this.generateOtp();
-    const otpHash = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(
-      Date.now() + this.getOtpExpiryMinutes() * 60 * 1000,
-    );
-
-    const existingOtp = await this.otpRepository.findOne({
-      where: { email, usedAt: IsNull() },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (existingOtp) {
-      existingOtp.otpHash = otpHash;
-      existingOtp.expiresAt = expiresAt;
-      existingOtp.attempts = 0;
-      await this.otpRepository.save(existingOtp);
-      return;
-    }
-
-    const otpRecord = this.otpRepository.create({
-      email,
-      otpHash,
-      expiresAt,
-      attempts: 0,
-      usedAt: null,
-    });
-    await this.otpRepository.save(otpRecord);
-  }
-
-  async verifyOtp(email: string, otp: string): Promise<void> {
-    const otpRecord = await this.otpRepository.findOne({
-      where: { email, usedAt: IsNull() },
-      order: { createdAt: 'DESC' },
-    });
-
-    if (!otpRecord) {
-      throw new BadRequestException('otp.invalidOrExpired');
-    }
-
-    if (otpRecord.expiresAt < new Date()) {
-      throw new BadRequestException('otp.invalidOrExpired');
-    }
-
-    if (otpRecord.attempts >= this.getMaxAttempts()) {
-      throw new BadRequestException('otp.maxAttemptsExceeded');
-    }
-
-    const isOtpValid = await bcrypt.compare(otp, otpRecord.otpHash);
-    if (!isOtpValid) {
-      otpRecord.attempts += 1;
-      await this.otpRepository.save(otpRecord);
-      throw new BadRequestException('otp.invalidOrExpired');
-    }
-
-    otpRecord.usedAt = new Date();
-    await this.otpRepository.save(otpRecord);
-  }
-
-  async issuePhoneOtp(phoneNumber: string): Promise<void> {
+  async issuePhoneOtp(
+    phoneNumber: string,
+    purpose: OtpPurpose = OtpPurpose.REGISTRATION,
+  ): Promise<void> {
     const otp = this.generateOtp();
     const otpHash = await bcrypt.hash(otp, 10);
     const expiresAt = new Date(
@@ -95,7 +37,7 @@ export class OtpService {
     );
 
     const existingOtp = await this.phoneOtpRepository.findOne({
-      where: { phoneNumber, usedAt: IsNull() },
+      where: { phoneNumber, purpose, usedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
 
@@ -109,6 +51,7 @@ export class OtpService {
 
     const otpRecord = this.phoneOtpRepository.create({
       phoneNumber,
+      purpose,
       otpHash,
       expiresAt,
       attempts: 0,
@@ -117,9 +60,13 @@ export class OtpService {
     await this.phoneOtpRepository.save(otpRecord);
   }
 
-  async verifyPhoneOtp(phoneNumber: string, otp: string): Promise<void> {
+  async verifyPhoneOtp(
+    phoneNumber: string,
+    otp: string,
+    purpose: OtpPurpose = OtpPurpose.REGISTRATION,
+  ): Promise<void> {
     const otpRecord = await this.phoneOtpRepository.findOne({
-      where: { phoneNumber, usedAt: IsNull() },
+      where: { phoneNumber, purpose, usedAt: IsNull() },
       order: { createdAt: 'DESC' },
     });
 

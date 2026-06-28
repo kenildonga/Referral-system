@@ -18,3 +18,8 @@ export enum BankHolderType {
   USER = 'user',
   AGENT = 'agent',
 }
+
+export enum OtpPurpose {
+  REGISTRATION = 'registration',
+  PASSWORD_RESET = 'password_reset',
+}

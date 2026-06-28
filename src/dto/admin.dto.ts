@@ -9,9 +9,14 @@ export const passwordSchema = z
   .regex(/[a-zA-Z]/, 'validation.password.requireLetter')
   .regex(/[0-9]/, 'validation.password.requireNumber');
 
+const phoneNumberSchema = z
+  .string()
+  .regex(/^\d{10}$/, 'validation.phoneNumber.invalid');
+
 export const CreateAdminSchema = z.object({
   name: z.string().min(1, 'validation.name.required').max(255),
   email: z.string().email('validation.email.invalid').max(255),
+  phoneNumber: phoneNumberSchema,
   password: passwordSchema,
   role: z.nativeEnum(AdminRole).default(AdminRole.ADMIN),
 });
@@ -25,6 +30,7 @@ export const UpdateAdminSchema = z
   .object({
     name: z.string().min(1, 'validation.name.required').max(255).optional(),
     email: z.string().email('validation.email.invalid').max(255).optional(),
+    phoneNumber: phoneNumberSchema.optional(),
     role: z.nativeEnum(AdminRole).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
@@ -45,11 +51,11 @@ export const ChangePasswordSchema = z.object({
 });
 
 export const ForgotPasswordSchema = z.object({
-  email: z.string().email('validation.email.invalid'),
+  phoneNumber: phoneNumberSchema,
 });
 
 export const ResetPasswordOtpSchema = z.object({
-  email: z.string().email('validation.email.invalid'),
+  phoneNumber: phoneNumberSchema,
   otp: z.string().min(1, 'validation.otp.required'),
   newPassword: passwordSchema,
 });

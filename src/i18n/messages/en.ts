@@ -13,10 +13,11 @@ export const enMessages = {
     logoutSuccess: 'Logged out successfully',
     passwordChangedSuccess: 'Password changed successfully',
     passwordResetSuccess: 'Password reset successfully',
-    forgotPasswordGeneric: 'If the email exists, an OTP has been sent',
+    forgotPasswordGeneric: 'If the phone number exists, an OTP has been sent',
   },
   admin: {
     emailExists: 'Admin with this email already exists',
+    phoneNumberExists: 'Admin with this phone number already exists',
     notFound: 'Admin with ID {{id}} not found',
     cannotDeactivateSelf: 'You cannot deactivate your own account',
     cannotModifyLastSuperAdmin: 'Cannot {{action}} the last active super admin',

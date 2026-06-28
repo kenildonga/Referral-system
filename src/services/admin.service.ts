@@ -10,6 +10,8 @@ import { Repository, Not, FindOptionsSelect } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import { Admin } from '../entities/admins.entity';
+import { Agent } from '../entities/agents.entity';
+import { User } from '../entities/users.entity';
 import {
   CreateAdminDto,
   UpdateAdminDto,
@@ -19,7 +21,7 @@ import {
   ChangePasswordDto,
   ResetPasswordOtpDto,
 } from '../dto/admin.dto';
-import { AdminRole } from '../entities/enum';
+import { AdminRole, OtpPurpose } from '../entities/enum';
 import type { AuthenticatedAdmin } from '../common/interfaces/auth.interface';
 import { OtpService } from '../common/helpers/otp.service';
 import { I18nService } from '../i18n/i18n.service';
@@ -30,6 +32,7 @@ const SAFE_ADMIN_SELECT: FindOptionsSelect<Admin> = {
   id: true,
   name: true,
   email: true,
+  phoneNumber: true,
   role: true,
   isActive: true,
   lastLogin: true,
@@ -42,6 +45,10 @@ export class AdminService {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
+    @InjectRepository(Agent)
+    private readonly agentRepository: Repository<Agent>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly otpService: OtpService,
     private readonly i18n: I18nService,
   ) {}
@@ -102,12 +109,12 @@ export class AdminService {
     return { message: this.i18n.t('auth.passwordChangedSuccess') };
   }
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
+  async forgotPassword(phoneNumber: string): Promise<{ message: string }> {
     const admin = await this.adminRepository.findOne({
-      where: { email, isActive: true },
+      where: { phoneNumber, isActive: true },
     });
     if (admin) {
-      await this.otpService.issueOtp(email);
+      await this.otpService.issuePhoneOtp(phoneNumber, OtpPurpose.PASSWORD_RESET);
     }
 
     return { message: this.i18n.t('auth.forgotPasswordGeneric') };
@@ -116,16 +123,20 @@ export class AdminService {
   async resetPasswordWithOtp(
     resetPasswordOtpDto: ResetPasswordOtpDto,
   ): Promise<{ message: string }> {
-    const { email, otp, newPassword } = resetPasswordOtpDto;
+    const { phoneNumber, otp, newPassword } = resetPasswordOtpDto;
 
     const admin = await this.adminRepository.findOne({
-      where: { email, isActive: true },
+      where: { phoneNumber, isActive: true },
     });
     if (!admin) {
       throw new BadRequestException('otp.invalidOrExpired');
     }
 
-    await this.otpService.verifyOtp(email, otp);
+    await this.otpService.verifyPhoneOtp(
+      phoneNumber,
+      otp,
+      OtpPurpose.PASSWORD_RESET,
+    );
     await this.updatePassword(admin, newPassword);
 
     return { message: this.i18n.t('auth.passwordResetSuccess') };
@@ -141,9 +152,12 @@ export class AdminService {
       throw new ConflictException('admin.emailExists');
     }
 
+    await this.assertPhoneAvailable(createAdminDto.phoneNumber);
+
     const admin = this.adminRepository.create({
       name: createAdminDto.name,
       email: createAdminDto.email,
+      phoneNumber: createAdminDto.phoneNumber,
       password: await this.hashPassword(createAdminDto.password),
       role: createAdminDto.role,
       isActive: true,
@@ -193,6 +207,14 @@ export class AdminService {
       admin.email = updateAdminDto.email;
     }
 
+    if (
+      updateAdminDto.phoneNumber &&
+      updateAdminDto.phoneNumber !== admin.phoneNumber
+    ) {
+      await this.assertPhoneAvailable(updateAdminDto.phoneNumber, admin.id);
+      admin.phoneNumber = updateAdminDto.phoneNumber;
+    }
+
     if (updateAdminDto.name !== undefined) {
       admin.name = updateAdminDto.name;
     }
@@ -236,6 +258,35 @@ export class AdminService {
   }
 
   // --- Private helpers ---
+
+  private async assertPhoneAvailable(
+    phoneNumber: string,
+    excludeAdminId?: string,
+  ): Promise<void> {
+    const existingAdmin = await this.adminRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingAdmin && existingAdmin.id !== excludeAdminId) {
+      throw new ConflictException('admin.phoneNumberExists');
+    }
+
+    const existingAgent = await this.agentRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingAgent) {
+      throw new ConflictException('agent.phoneNumberExists');
+    }
+
+    const existingUser = await this.userRepository.findOne({
+      where: { phoneNumber },
+      select: { id: true },
+    });
+    if (existingUser) {
+      throw new ConflictException('user.phoneNumberAlreadyExists');
+    }
+  }
 
   private async findByIdOrFail(id: string): Promise<Admin> {
     const admin = await this.adminRepository.findOne({ where: { id } });

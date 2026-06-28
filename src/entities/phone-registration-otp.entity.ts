@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { OtpPurpose } from './enum';
 
 @Entity('phone_registration_otps')
 export class PhoneRegistrationOtp {
@@ -13,6 +14,13 @@ export class PhoneRegistrationOtp {
 
   @Column({ type: 'varchar', length: 10 })
   phoneNumber: string;
+
+  @Column({
+    type: 'enum',
+    enum: OtpPurpose,
+    default: OtpPurpose.REGISTRATION,
+  })
+  purpose: OtpPurpose;
 
   @Column({ type: 'varchar', length: 255 })
   otpHash: string;

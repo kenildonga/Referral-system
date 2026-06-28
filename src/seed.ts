@@ -16,6 +16,7 @@ async function bootstrap() {
     await adminService.create({
       name: 'Super Admin',
       email: superAdminEmail,
+      phoneNumber: '9000000001',
       password: superAdminPassword,
       role: AdminRole.SUPER_ADMIN,
     });
